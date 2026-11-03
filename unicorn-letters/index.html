@@ -191,6 +191,8 @@ h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;letter-spaci
 .choice.wrong{animation:wiggle .45s;opacity:.55}
 .choice.right{animation:pop .5s forwards;background:radial-gradient(circle at 32% 28%,#fff 0 18%,#b8f5d6 60%);box-shadow:0 9px 0 var(--mint-deep)}
 .choice.hint{animation:glow 1s ease-in-out infinite}
+.cooling .choice,.cooling .tile{pointer-events:none;filter:saturate(.5);opacity:.75}
+.shake{animation:wiggle .5s}
 @keyframes wiggle{0%,100%{transform:translateX(0)}20%{transform:translateX(-14px) rotate(-6deg)}40%{transform:translateX(12px) rotate(5deg)}60%{transform:translateX(-8px)}80%{transform:translateX(6px)}}
 @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.22)}100%{transform:scale(1.08)}}
 @keyframes glow{0%,100%{box-shadow:0 9px 0 var(--edge,#f3b6d3),0 0 0 0 rgba(255,201,77,.9)}50%{box-shadow:0 9px 0 var(--edge,#f3b6d3),0 0 0 18px rgba(255,201,77,.35)}}
@@ -420,7 +422,7 @@ h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;letter-spaci
       <h3>How the game works</h3>
       <p>Letters come in phonics order (s, a, t, p, then i, n, m, d…), the order many reading programs use. This lets her start building real words like <b>sat</b>, <b>pin</b> and <b>map</b> early.</p>
       <p>Each land has four games: Find the Letter (by name), Big &amp; Little (matching cases), Letter Sounds (first sounds of words), and Rainbow Trace. 6 stars in a land opens the next one. Word Rainbow opens after Cloud Castle and teaches sounding out short words.</p>
-      <p>Every finished rainbow earns 1–3 stars and a sticker. Stars unlock new looks for her unicorn.</p>
+      <p>A rainbow color is only earned for a <b>first-try</b> right answer. If she guesses wrong, she still has to find the right one, but no color, and that letter comes back later. Wrong taps pause the buttons briefly so tapping everything doesn't work. Tracing has to stay on the letter.</p><p>Stars: 3 for a perfect rainbow, 2 for one or two misses, 1 otherwise. A sticker needs 2 or more stars. Stars unlock new looks for her unicorn. After 3 misses in a row, the game drops to 2 choices until she gets one right.</p>
     </div>
     <div class="psec">
       <h3>Settings</h3>
@@ -719,12 +721,14 @@ function poolFor(i){
   return {cur,review,all:cur.concat(review)};
 }
 function chooseTarget(withCase){
+  if(R.retry.length&&R.sinceRetry>=2){const t=R.retry.shift();R.sinceRetry=0;R.last=t[0];R.cur=t;return t;}
+  R.sinceRetry++;
   const P=poolFor(R.land);
   const src=(P.review.length&&Math.random()<.3)?P.review:P.cur;
   const opts=[];src.forEach(b=>{ if(withCase){opts.push([b,true],[b,false]);} else opts.push([b,null]); });
   let t;let guard=0;
   do{t=weightedPick(opts,([b,up])=>withCase?weak(mkey(b,up)):(weak(U(b))+weak(b))/2);}while(R.last&&t[0]===R.last&&++guard<8);
-  R.last=t[0];return t;
+  R.last=t[0];R.cur=t;return t;
 }
 function distractors(target,n){
   const P=poolFor(R.land);
@@ -734,10 +738,10 @@ function distractors(target,n){
   for(const b of shuffle(Object.keys(NAMES))){if(out.length>=n)break;if(b!==target&&!out.includes(b))out.push(b);}
   return out.slice(0,n);
 }
-const nChoices=()=>(S.four||R.land>=2)?4:3;
+const nChoices=()=>R.streakMiss>=3?2:(S.four||R.land>=2)?4:3;
 
 function startRound(game,land){
-  R={game,land,i:0,n:game==='trace'?4:game==='words'?5:7,mistakes:0,qMiss:0,locked:false,last:null,traceList:null};
+  R={game,land,i:0,n:game==='trace'?4:game==='words'?5:7,mistakes:0,missedQs:0,qMiss:0,streakMiss:0,locked:false,last:null,traceList:null,retry:[],sinceRetry:0,cur:null,readyAt:0,cool:false};
   $('#gameUni').innerHTML=unicornSVG(S.look);
   drawMeter(0);
   show('game');
@@ -755,18 +759,20 @@ $('#quitBtn').addEventListener('click',()=>{if(window.speechSynthesis)speechSynt
 
 function next(){
   if(!R)return;
-  R.qMiss=0;R.locked=false;
-  const area=$('#playArea');area.className='choices';area.style.flexDirection='';area.innerHTML='';
+  R.qMiss=0;R.locked=false;R.cool=false;R.readyAt=performance.now()+800;
+  const area=$('#playArea');area.className='choices';area.classList.remove('cooling');area.style.flexDirection='';area.innerHTML='';
   ({find:qFind,match:qMatch,sound:qSound,trace:qTrace,words:qWords})[R.game]();
 }
 function makeChoice(html,cls,onTap){
   const b=document.createElement('button');b.className='choice '+(cls||'');b.innerHTML=html;
   const p=PASTELS[rnd(PASTELS.length)];b.style.setProperty('--bg',p[0]);b.style.setProperty('--edge',p[1]);
-  b.addEventListener('click',e=>onTap(b,e));$('#playArea').appendChild(b);return b;
+  b.addEventListener('click',e=>{if(!canTap())return;onTap(b,e);});$('#playArea').appendChild(b);return b;
 }
+const canTap=()=>R&&!R.locked&&!R.cool&&performance.now()>=R.readyAt;
 function bubble(html){$('#bubble').innerHTML=html;}
 function sparkleAt(x,y,ch){const s=document.createElement('div');s.className='sparkle-pop';s.textContent=ch||pick(['✨','🌟','💖','⭐','🌈']);s.style.left=x+'px';s.style.top=y+'px';document.body.appendChild(s);setTimeout(()=>s.remove(),950);}
 function hopUni(){const u=$('#gameUni');u.classList.remove('hop');void u.offsetWidth;u.classList.add('hop');}
+const oops=()=>pick(['Oopsie!','Not quite, sweetie!','Almost!',`Oops, ${kidName()}!`,'Nice try, sweetheart!','Hmm, not that one!']);
 const praise=()=>pick(['Yay!',`Great job, ${kidName()}!`,'You did it!','Sparkly!','Super duper!',`Wow, ${kidName()}!`,'Magical!','Unicorn power!','Hooray!','Perfect!']);
 
 function correct(btn,e,key,extraSay){
@@ -775,19 +781,29 @@ function correct(btn,e,key,extraSay){
   if(btn)btn.classList.add('right');
   const r=btn?btn.getBoundingClientRect():{left:innerWidth/2,top:innerHeight/2,width:0,height:0};
   sparkleAt(e&&e.clientX?e.clientX:r.left+r.width/2,e&&e.clientY?e.clientY:r.top+r.height/2);
-  sfx.right();hopUni();
-  say((extraSay?extraSay+' ':'')+praise());
-  R.i++;drawMeter(R.i);save();
-  setTimeout(()=>{if(!R)return; if(R.i>=R.n)finish(); else next();},extraSay?2300:1500);
+  const earned=R.qMiss===0||R.game==='trace';
+  if(earned){
+    sfx.right();hopUni();R.streakMiss=0;
+    say((extraSay?extraSay+' ':'')+praise());
+    R.i++;drawMeter(R.i);
+  }else{
+    sfx.tap();R.missedQs++;R.streakMiss++;
+    if(R.cur&&R.game!=='trace')R.retry.push(R.cur);
+    const m=$('#meter');m.classList.remove('shake');void m.offsetWidth;m.classList.add('shake');
+    say((extraSay?extraSay+' ':'')+pick(['You found it! Get it right the first time to win a color.','There it is! We\'ll try that one again soon.','Good finding! Next time, first try for a rainbow color!']));
+  }
+  save();
+  setTimeout(()=>{if(!R)return; if(R.i>=R.n)finish(); else next();},earned?(extraSay?2300:1500):3200);
 }
+function coolDown(ms){R.cool=true;const a=$('#playArea');a.classList.add('cooling');setTimeout(()=>{if(!R)return;R.cool=false;a.classList.remove('cooling');},ms);}
 function wrong(btn,key,msg,correctBtn){
   if(R.locked)return;
   if(R.qMiss===0&&key)rec(key,false);
   R.qMiss++;R.mistakes++;
   btn.classList.remove('wrong');void btn.offsetWidth;btn.classList.add('wrong');btn.disabled=true;
-  sfx.wrong();
-  if(R.qMiss>=2&&correctBtn){correctBtn.classList.add('hint');say(msg+' Look, here it is!');}
-  else say(msg);
+  sfx.wrong();coolDown(1800);
+  if(R.qMiss>=2&&correctBtn){correctBtn.classList.add('hint');say(oops()+' '+msg+' Look, here it is!');}
+  else say(oops()+' '+msg+' Try again!');
   save();
 }
 
@@ -800,7 +816,7 @@ function qFind(){
   const opts=shuffle([b,...distractors(b,nChoices()-1)]);let right;
   opts.forEach(o=>{const el=makeChoice(up?U(o):o,'',(btn,e)=>{
     if(o===b){$('#hid').textContent=ch;correct(btn,e,k,`That's ${letterSay(b,up)}!`);}
-    else{wrong(btn,k,`Oops, that's ${letterSay(o,up)}. Find ${letterSay(b,up)}!`,right);if(R.qMiss>=2)$('#hid').textContent=ch;}
+    else{wrong(btn,k,`That's ${letterSay(o,up)}. Find ${letterSay(b,up)}!`,right);if(R.qMiss>=2)$('#hid').textContent=ch;}
   });if(o===b)right=el;});
 }
 /* ---------- Big & little ---------- */
@@ -886,26 +902,34 @@ function setupTrace(ch,key){
   const mk=document.createElement('canvas');mk.width=W;mk.height=H;const mc=mk.getContext('2d');
   mc.font=font;mc.textAlign='center';mc.textBaseline='alphabetic';mc.fillStyle='#000';mc.fillText(ch,W/2,base);
   const inside=mc.getImageData(0,0,W,H).data;
-  mc.lineWidth=brush*1.6;mc.lineJoin='round';mc.strokeStyle='#000';mc.strokeText(ch,W/2,base);
+  mc.lineWidth=brush*1.25;mc.lineJoin='round';mc.strokeStyle='#000';mc.strokeText(ch,W/2,base);
   const allowed=mc.getImageData(0,0,W,H).data;
   const STEP=4;const pts=[];
   for(let y=0;y<H;y+=STEP)for(let x=0;x<W;x+=STEP){if(inside[(y*W+x)*4+3]>128)pts.push([x,y]);}
   // drawing
-  let drawing=false,lx=0,ly=0,hue=rnd(360),done=false;
+  let drawing=false,lx=0,ly=0,hue=rnd(360),done=false,stroke=[];
   dc.lineCap='round';dc.lineJoin='round';dc.lineWidth=brush;
   const pos=e=>{const r=d.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];};
-  d.onpointerdown=e=>{if(done)return;d.setPointerCapture(e.pointerId);drawing=true;[lx,ly]=pos(e);dc.fillStyle=`hsl(${hue},90%,66%)`;dc.beginPath();dc.arc(lx,ly,brush/2,0,7);dc.fill();};
-  d.onpointermove=e=>{if(!drawing||done)return;const [x,y]=pos(e);hue=(hue+Math.hypot(x-lx,y-ly)*.6)%360;dc.strokeStyle=`hsl(${hue},90%,66%)`;dc.beginPath();dc.moveTo(lx,ly);dc.lineTo(x,y);dc.stroke();lx=x;ly=y;
+  d.onpointerdown=e=>{if(done||!R||R.cool)return;d.setPointerCapture(e.pointerId);drawing=true;[lx,ly]=pos(e);stroke=[[lx,ly]];dc.fillStyle=`hsl(${hue},90%,66%)`;dc.beginPath();dc.arc(lx,ly,brush/2,0,7);dc.fill();};
+  d.onpointermove=e=>{if(!drawing||done)return;const [x,y]=pos(e);hue=(hue+Math.hypot(x-lx,y-ly)*.6)%360;dc.strokeStyle=`hsl(${hue},90%,66%)`;dc.beginPath();dc.moveTo(lx,ly);dc.lineTo(x,y);dc.stroke();lx=x;ly=y;stroke.push([x,y]);
     if(Math.random()<.04)tone(1200+rnd(800),0,.08,'sine',.03);};
   const up=()=>{if(!drawing)return;drawing=false;check();};
   d.onpointerup=up;d.onpointercancel=up;
+  const isIn=(x,y)=>{x=Math.round(x);y=Math.round(y);return x>=0&&y>=0&&x<W&&y<H&&allowed[(y*W+x)*4+3]>=128;};
+  function oopsTrace(){
+    sfx.wrong();R.mistakes++;R.cool=true;
+    box.classList.remove('shake');void box.offsetWidth;box.classList.add('shake');
+    say(pick(['Oopsie! Let\'s stay right on the letter. Try again!','Almost, sweetie! Trace slowly on the letter. Try again!',`Nice try, ${kidName()}! Stay inside the lines and try again.`]));
+    setTimeout(()=>{dc.clearRect(0,0,W,H);if(R)R.cool=false;},900);
+  }
   function check(){
+    if(stroke.length>3){const out=stroke.filter(([x,y])=>!isIn(x,y)).length/stroke.length;if(out>.3){oopsTrace();return;}}
     const img=dc.getImageData(0,0,W*dpr,H*dpr).data;const at=(x,y)=>img[((Math.floor(y*dpr))*W*dpr+Math.floor(x*dpr))*4+3];
     let cov=0;pts.forEach(([x,y])=>{if(at(x,y)>0)cov++;});
     let tot=0,out=0;for(let y=0;y<H;y+=8)for(let x=0;x<W;x+=8){if(at(x,y)>0){tot++;if(allowed[(y*W+x)*4+3]<128)out++;}}
     const c=cov/Math.max(1,pts.length);
     if(c>=.7){
-      if(out/Math.max(1,tot)>.42){sfx.wrong();say('Oops, that went outside. Try tracing right on the letter!');dc.clearRect(0,0,W,H);R.mistakes++;return;}
+      if(out/Math.max(1,tot)>.25){oopsTrace();return;}
       done=true;rec(key,true);
       // fill the letter with rainbow
       const gr=gc.createLinearGradient(0,base-capH,0,base+fs*.2);RAINBOW.forEach((col,i)=>gr.addColorStop(i/6,col));
@@ -913,7 +937,7 @@ function setupTrace(ch,key){
       const r=d.getBoundingClientRect();correct(null,{clientX:r.left+r.width/2,clientY:r.top+r.height/2},null,`${NAMES[ch.toLowerCase()]}!`);
     }else if(c>.15&&Math.random()<.35){say(pick(['Keep going!','You\'re doing great!','Almost!']),{interrupt:false});}
   }
-  $('#tClear').onclick=()=>{if(done)return;sfx.tap();dc.clearRect(0,0,W,H);};
+  $('#tClear').onclick=()=>{if(done||R.cool)return;sfx.tap();dc.clearRect(0,0,W,H);};
 }
 /* ---------- Word building ---------- */
 function knownLetters(){const ls=new Set();LANDS.forEach((L,i)=>{if(landUnlocked(i))L.letters.forEach(l=>ls.add(l));});return ls;}
@@ -923,7 +947,9 @@ function qWords(){
   if(list.length<5)list=WORDS.filter(([w])=>[...w].every(c=>'satpinmdgock'.includes(c)));
   if(!R.used)R.used=[];
   let cands=list.filter(([w])=>!R.used.includes(w));if(!cands.length)cands=list;
-  const [word,emo]=pick(cands);R.used.push(word);
+  let pickW=pick(cands);
+  if(R.retry.length&&R.sinceRetry>=1){pickW=R.retry.shift();R.sinceRetry=0;}else R.sinceRetry++;
+  const [word,emo]=pickW;R.used.push(word);R.cur=pickW;
   let pos=0;
   const area=$('#playArea');area.className='choices';area.style.flexDirection='column';
   area.innerHTML=`<div class="slots">${[...word].map(()=>`<div class="slot"></div>`).join('')}</div><div class="tiles"></div>`;
@@ -937,19 +963,19 @@ function qWords(){
     const b=document.createElement('button');b.className='tile';b.textContent=c;
     const p=PASTELS[rnd(PASTELS.length)];b.style.setProperty('--bg',p[0]);b.style.setProperty('--edge',p[1]);
     b.onclick=e=>{
-      if(R.locked)return;
+      if(!canTap())return;
       if(c===word[pos]){
         sfx.tap();tone(660+pos*120,0,.2,'triangle',.12);
         const slot=area.querySelectorAll('.slot')[pos];slot.textContent=c;slot.classList.add('filled');b.classList.add('used');
         tileEls.forEach(t=>t.classList.remove('hint'));
         rec(c,R.qMiss===0);pos++;
-        if(pos>=word.length){R.qMiss=0;correct(null,e,null,`${sounds.join('... ')}... ${word}! You read ${word}!`);}
+        if(pos>=word.length){correct(null,e,null,`${sounds.join('... ')}... ${word}! You read ${word}!`);}
         else say(SOUNDS[c]);
       }else{
-        R.qMiss++;R.mistakes++;b.classList.remove('wrong');void b.offsetWidth;b.classList.add('wrong');sfx.wrong();
+        R.qMiss++;R.mistakes++;b.classList.remove('wrong');void b.offsetWidth;b.classList.add('wrong');sfx.wrong();coolDown(1800);
         const need=word[pos];
         if(R.qMiss>=2){const h=tileEls.find(t=>!t.classList.contains('used')&&t.textContent===need);if(h)h.classList.add('hint');}
-        say(`That says ${SOUNDS[c]}. We need ${SOUNDS[need]}, like ${word}.`);
+        say(`${oops()} That says ${SOUNDS[c]}. We need ${SOUNDS[need]}, like ${word}. Try again!`);
       }
     };
     tiles.appendChild(b);tileEls.push(b);
@@ -959,8 +985,8 @@ function qWords(){
 /* ================= FINISH / PRIZES ================= */
 function finish(){
   const game=R.game,land=R.land;
-  const per=R.n;const m=R.mistakes;
-  const stars=m<=Math.ceil(per*.15)?3:m<=Math.ceil(per*.5)?2:1;
+  const m=game==='trace'?R.mistakes:R.missedQs;
+  const stars=m===0?3:m<=2?2:1;
   const lid=land>=0?LANDS[land].id:'words',gid=game==='words'?'build':game;
   const best=S.best[lid]||(S.best[lid]={});
   const wasUnlocked=LANDS.map((_,i)=>landUnlocked(i)),wasWords=wordsUnlocked();
@@ -968,7 +994,8 @@ function finish(){
   const before=S.totalStars;S.totalStars+=stars;S.rainbows++;
   // sticker
   const left=STICKERS.filter(s=>!S.stickers.includes(s[0]));
-  const stk=left.length?pick(left):pick(STICKERS);if(left.length)S.stickers.push(stk[0]);
+  const gotSticker=stars>=2;
+  const stk=left.length?pick(left):pick(STICKERS);if(gotSticker&&left.length)S.stickers.push(stk[0]);
   // newly unlocked items
   const unlocked=[...BODIES.map(x=>[x.name+' coat',x.cost]),...MANES.map(x=>[x.name+' mane',x.cost]),...HORNS.map(x=>[x.name+' horn',x.cost]),...EXTRAS.map(x=>[x.name,x.cost])]
     .filter(([,c])=>c>before&&c<=S.totalStars).map(([n])=>n);
@@ -982,7 +1009,8 @@ function finish(){
     <svg class="cele-rainbow" viewBox="0 0 140 76">${RAINBOW.map((c,i)=>{const r=64-i*7.4;return `<path d="M${70-r} 72 A${r} ${r} 0 0 1 ${70+r} 72" fill="none" stroke="${c}" stroke-width="6.6" stroke-linecap="round" style="stroke-dasharray:220;stroke-dashoffset:220;animation:drawarc .9s ${i*.1}s forwards"/>`;}).join('')}
       <style>@keyframes drawarc{to{stroke-dashoffset:0}}</style></svg>
     <div class="cele-stars">${[0,1,2].map(k=>`<span style="${k<stars?'':'filter:grayscale(1);opacity:.25'}">⭐</span>`).join('')}</div>
-    <div class="cele-sticker"><span class="big">${stk[0]}</span><span>${left.length?'New sticker!':'Bonus sticker!'}<br><small style="font-weight:600">${stk[1]}</small></span></div>
+    ${gotSticker?`<div class="cele-sticker"><span class="big">${stk[0]}</span><span>${left.length?'New sticker!':'Bonus sticker!'}<br><small style="font-weight:600">${stk[1]}</small></span></div>`
+      :`<div class="cele-sticker"><span class="big" style="filter:grayscale(1);opacity:.35">🎁</span><span>Get 2 stars to win a sticker!<br><small style="font-weight:600">Try for first-try answers</small></span></div>`}
     ${unlocked.length?`<div class="cele-unlock">🦄 New for your unicorn: <b>${unlocked.join(', ')}</b>!</div>`:''}
     ${newLand>=0?`<div class="cele-unlock">🗺️ You opened <b>${LANDS[newLand].name}</b>!</div>`:''}
     ${newWords?`<div class="cele-unlock">🌈 You opened <b>Word Rainbow</b>! Now you can read words!</div>`:''}
@@ -993,7 +1021,7 @@ function finish(){
     </div>`;
   $('#celebrate').hidden=false;
   sfx.fanfare();confetti();
-  let msg=`Hooray, ${kidName()}! You made a rainbow and earned ${stars} star${stars>1?'s':''}! You got a ${stk[1]} sticker!`;
+  let msg=`Hooray, ${kidName()}! You made a rainbow and earned ${stars} star${stars>1?'s':''}! ${gotSticker?`You got a ${stk[1]} sticker!`:'Play again and get two stars to win a sticker!'}`;
   if(unlocked.length)msg+=` And something new for your unicorn: ${unlocked.join(' and ')}!`;
   if(newLand>=0)msg+=` You opened ${LANDS[newLand].name}!`;
   if(newWords)msg+=' You opened Word Rainbow!';
