@@ -13,7 +13,7 @@ A rainbow-and-unicorn letter game for preschoolers, made for iPad (works in any 
 
 Letters come in phonics order (s a t p → i n m d → g o c k → e u r h → b f l j → v w x y z q), so real words open up early. Letters she misses come up more often.
 
-**Prizes**: every 7 right answers fill a rainbow. Each rainbow earns 1–3 stars and a sticker for her sticker book. Stars unlock outfits for her unicorn (manes, coats, horns, wings, crowns…) and open new lands.
+**Prizes**: only *first-try* right answers add a color to the rainbow (guessing doesn't). A missed letter comes back later in the round. Wrong taps pause the buttons briefly, and tracing must stay on the letter. A full rainbow earns 1–3 stars (3 = perfect); 2+ stars also wins a sticker for her sticker book. Stars unlock outfits for her unicorn (manes, coats, horns, wings, crowns…) and open new lands.
 
 **Grown-ups' Corner**: press and hold the ⚙️ on the home screen. It shows letter-by-letter progress and has settings for voice, opening all lands, 4 choices, and resetting progress.
 
