@@ -127,9 +127,9 @@
       do { i = R(0, len - 1); d = Math.floor(n / 10 ** i) % 10; } while (d === 0);
       const val = d * 10 ** i;
       return {
-        q: `What is the <b>value</b> of the underlined digit?${big(underlineDigit(n, i))}`, a: num(val),
-        hint: `The digit is ${d}. Count places from the right: ones, tens, hundreds, thousands…`,
-        explain: `The ${d} is in the ${PLACE[10 ** i]} place, so its value is ${fmt(val)}.`,
+        q: `📍 <b>Place value</b> (not rounding!): the underlined <b>${d}</b> is worth how much in this number?${big(underlineDigit(n, i))}`, a: num(val),
+        hint: `Count places from the right: ones, tens, hundreds, thousands… The ${d} is worth ${d} × that place.`,
+        explain: `The ${d} is in the ${PLACE[10 ** i]} place, so it is worth ${d} × ${fmt(10 ** i)} = ${fmt(val)}. (Rounding would be a different question!)`,
       };
     }
     let n, p;
@@ -138,7 +138,7 @@
     else { n = R(100000, 9999999); p = pick([1000, 10000, 100000]); }
     const ans = Math.round(n / p) * p, lo = Math.floor(n / p) * p;
     return {
-      q: `Round to the nearest <b>${fmt(p)}</b>:${big(fmt(n))}`, a: num(ans),
+      q: `🎯 <b>Rounding:</b> round to the nearest <b>${fmt(p)}</b>.${big(fmt(n))}`, a: num(ans),
       hint: `Find the ${PLACE[p]} digit. Look at the digit just to its right: 5 or more rounds up, 4 or less rounds down.`,
       explain: `${fmt(n)} is between ${fmt(lo)} and ${fmt(lo + p)}. It rounds to ${fmt(ans)}.`,
     };
@@ -1003,17 +1003,244 @@
   };
 
   const roundLead = (n) => { const p = 10 ** (String(Math.round(Math.abs(n))).length - 1); return Math.round(n / p) * p; };
-  const estChoice = (est) => choice(fmt(est), [fmt(est * 10), fmt(est / 10), fmt(est + roundLead(est) / (est >= 100 ? 5 : 2)), fmt(Math.max(1, est - roundLead(est) / 2))]);
+  // Distractors are a whole place value off (or double), so only one choice is ever close to the real answer.
+  const estChoice = (est) => choice(fmt(est), [fmt(est * 10), fmt(est / 10), fmt(est * 2), fmt(est * 100)]);
   G.b_estimate = (l, g) => {
-    if (l === 1) { const a = R(110, 989), b = R(110, 989), est = Math.round(a / 100) * 100 + Math.round(b / 100) * 100; return { q: `T-Rex needs a fast estimate! Which is closest to:${big(`${a} + ${b}`)}`, a: estChoice(est), hint: `Round each number to the nearest hundred, then add.`, explain: `${Math.round(a / 100) * 100} + ${Math.round(b / 100) * 100} = ${fmt(est)}.` }; }
+    if (l === 1) { const a = R(110, 989), b = R(110, 989), est = Math.round(a / 100) * 100 + Math.round(b / 100) * 100; return { q: `T-Rex needs a fast estimate! <b>Round each number to the nearest hundred</b>, then add:${big(`${a} + ${b}`)}`, a: estChoice(est), hint: `Round each number to the nearest hundred, then add.`, explain: `${Math.round(a / 100) * 100} + ${Math.round(b / 100) * 100} = ${fmt(est)}.` }; }
     if (l === 2 || g <= 5) {
       const a = l === 2 ? R(12, 98) : R(110, 989), b = l === 2 ? R(3, 9) : R(12, 98);
       const ra = roundLead(a), rb = roundLead(b), est = ra * rb;
-      return { q: `Best estimate:${big(`${a} × ${b}`)}`, a: estChoice(est), hint: `Round to ${fmt(ra)} × ${fmt(rb)}.`, explain: `${fmt(ra)} × ${fmt(rb)} = ${fmt(est)}.` };
+      return { q: `Estimate! <b>Round each number to its greatest place</b> (like 87 → 90, 412 → 400), then multiply:${big(`${a} × ${b}`)}`, a: estChoice(est), hint: `Round to ${fmt(ra)} × ${fmt(rb)}.`, explain: `${fmt(ra)} × ${fmt(rb)} = ${fmt(est)}.` };
     }
-    if (Math.random() < 0.5) { const a = R(21, 99) / 10, b = R(110, 990) / 10, est = Math.round(a) * roundLead(b); return { q: `Best estimate:${big(`${a} × ${b}`)}`, a: estChoice(est), hint: `Round to ${Math.round(a)} × ${fmt(roundLead(b))}.`, explain: `${Math.round(a)} × ${fmt(roundLead(b))} = ${fmt(est)}.` }; }
+    if (Math.random() < 0.5) { const a = R(21, 99) / 10, b = R(110, 990) / 10, est = Math.round(a) * roundLead(b); return { q: `Estimate! <b>Round ${a} to the nearest whole number</b> and <b>${b} to its greatest place</b>, then multiply:${big(`${a} × ${b}`)}`, a: estChoice(est), hint: `Round to ${Math.round(a)} × ${fmt(roundLead(b))}.`, explain: `${Math.round(a)} × ${fmt(roundLead(b))} = ${fmt(est)}.` }; }
     const bp = pick([10, 20, 25, 50, 75]), p = bp + pick([-2, -1, 1, 2]), base = (100 / gcd(bp, 100)) * R(2, 15), n = base + pick([-1, 1, 2]), est = (bp * base) / 100;
-    return { q: `Best estimate:${big(`${p}% of ${n}`)}`, a: estChoice(est), hint: `${p}% is close to ${bp}%, and ${n} is close to ${base}.`, explain: `${bp}% of ${base} = ${fmt(est)}.` };
+    return { q: `Estimate using friendly numbers (${p}% is close to ${bp}%):${big(`${p}% of ${n}`)}`, a: estChoice(est), hint: `${p}% is close to ${bp}%, and ${n} is close to ${base}.`, explain: `${bp}% of ${base} = ${fmt(est)}.` };
+  };
+
+  // ======================= MORE TOPICS PER GRADE =======================
+  const divisors = (n) => { const d = []; for (let i = 1; i <= n; i++) if (n % i === 0) d.push(i); return d; };
+  const isPrime = (n) => n > 1 && divisors(n).length === 2;
+  const trimDec = (units, places) => decStr(units, places).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+  const pt = (x, y) => `(${fmt(x)}, ${fmt(y)})`;
+
+  // ---- Grade 4: factors, multiples & primes (4.OA.4)
+  G.g4_factor = (l) => {
+    if (l === 1) {
+      if (Math.random() < 0.5) {
+        const N = R(2, 9) * R(3, 12), divs = divisors(N).filter((x) => x > 1 && x < N && x <= 12);
+        const f = pick(divs.length ? divs : [N]), non = shuffle([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].filter((x) => N % x !== 0));
+        if (non.length < 3) return G.g4_factor(l);
+        return { q: `Which number is a <b>factor</b> of <b>${N}</b>?`, a: choice(String(f), non.slice(0, 3).map(String)), hint: `A factor divides ${N} evenly, with no remainder.`, explain: `${N} ÷ ${f} = ${N / f}, with no remainder.` };
+      }
+      const k = R(3, 9), m = k * R(3, 12), wrong = shuffle([m + 1, m - 1, m + Math.ceil(k / 2), m + k + 1, m - k + 1].filter((x) => x % k !== 0 && x > 0));
+      return { q: `Which number is a <b>multiple</b> of <b>${k}</b>?`, a: choice(String(m), wrong.slice(0, 3).map(String)), hint: `Multiples of ${k} are what you get when you count by ${k}s.`, explain: `${k} × ${m / k} = ${m}.` };
+    }
+    if (l === 2) {
+      const prime = Math.random() < 0.5;
+      let N; do { N = R(11, 99); } while (isPrime(N) !== prime || (!prime && N % 2 === 0 && Math.random() < 0.6));
+      const d = divisors(N);
+      return { q: `Is <b>${N}</b> prime or composite?`, a: choiceFixed(['Prime', 'Composite'], prime ? 'Prime' : 'Composite'), hint: `Prime numbers have exactly 2 factors: 1 and themselves. Try dividing ${N} by 2, 3, 5 and 7.`, explain: prime ? `${N} has only two factors (1 and ${N}), so it's prime.` : `${N} = ${d[1]} × ${N / d[1]}, so it has more than two factors. It's composite.` };
+    }
+    const N = pick([12, 16, 18, 20, 24, 28, 30, 32, 36, 40, 42, 45, 48, 50, 54, 56, 60, 64, 72, 80, 84, 90, 96, 100]), d = divisors(N);
+    const pairs = d.filter((x) => x * x <= N).map((x) => `${x}×${N / x}`).join(', ');
+    return { q: `How many <b>factors</b> does <b>${N}</b> have?`, a: num(d.length), hint: `List factor pairs: 1 × ${N}, 2 × ?, … Count every number you used (count a square pair like 6 × 6 once).`, explain: `Factor pairs: ${pairs}. The factors are ${d.join(', ')}, so there are ${d.length}.` };
+  };
+
+  // ---- Grade 4: multiply a fraction by a whole number (4.NF.4)
+  G.g4_fracmul = (l) => {
+    const d = R(2, 10);
+    if (l === 1) { const w = R(2, 9); return { q: `Multiply:${big(`${w} × ${fr(1, d)}`)}`, a: frac(w, d), hint: `${w} groups of ${fr(1, d)} = ${w} copies of ${fr(1, d)} added together.`, explain: `${w} × ${fr(1, d)} = ${fr(w, d)} = ${fracHTML(w, d)}.` }; }
+    if (l === 2) { const w = R(2, 9), n = R(2, Math.max(2, d - 1)); return { q: `Multiply:${big(`${w} × ${fr(n, d)}`)}`, a: frac(w * n, d), hint: `Multiply the whole number by the numerator: ${w} × ${n}. Keep the denominator ${d}.`, explain: `${w} × ${fr(n, d)} = ${fr(w * n, d)} = ${fracHTML(w * n, d)}.` }; }
+    const n = R(1, Math.max(1, d - 1)), w = R(3, 12);
+    return { q: `Each clownfish eats ${fr(n, d)} of a pound of sea-snacks. How many pounds do <b>${w}</b> clownfish eat? (Fractions and mixed numbers are both OK.)`, a: frac(w * n, d), hint: `${w} × ${fr(n, d)} means ${w} × ${n} pieces of size ${fr(1, d)}.`, explain: `${w} × ${fr(n, d)} = ${fr(w * n, d)} = ${fracHTML(w * n, d)} pounds.` };
+  };
+
+  // ---- Grade 5: multi-digit multiplication & long division (5.NBT.5–6)
+  G.g5_longdiv = (l) => {
+    if (l === 1) { const a = R(102, 999), b = R(12, 99); return { q: `Multiply:${big(`${fmt(a)} × ${b}`)}`, a: num(a * b), hint: `Multiply ${fmt(a)} × ${b % 10}, then ${fmt(a)} × ${b - (b % 10)}, and add.`, explain: `${fmt(a)} × ${b % 10} = ${fmt(a * (b % 10))}; ${fmt(a)} × ${b - (b % 10)} = ${fmt(a * (b - (b % 10)))}; total ${fmt(a * b)}.` }; }
+    if (l === 2) { const d = R(11, 49), q = R(12, 99), n = d * q; return { q: `Divide:${big(`${fmt(n)} ÷ ${d}`)}`, a: num(q), hint: `Estimate: about how many ${d}s are in ${fmt(n)}? Try ${d} × ${Math.round(q / 10) * 10 || 10}.`, explain: `${d} × ${q} = ${fmt(n)}, so ${fmt(n)} ÷ ${d} = ${q}.` }; }
+    const d = R(12, 60), q = R(100, 250), r = R(1, d - 1), n = d * q + r;
+    return { q: `Divide. Choose the quotient and remainder:${big(`${fmt(n)} ÷ ${d}`)}`, a: choice(`${q} R ${r}`, [`${q + 1} R ${r}`, `${q - 1} R ${r}`, `${q} R ${r + 1 < d ? r + 1 : r - 1}`, `${q * 10} R ${r}`]), hint: `The remainder must be less than ${d}. Check: ${d} × your quotient + remainder = ${fmt(n)}.`, explain: `${d} × ${q} = ${fmt(d * q)}, and ${fmt(n)} − ${fmt(d * q)} = ${r}. So ${q} R ${r}.` };
+  };
+
+  // ---- Grade 5: decimal place value, powers of 10, rounding decimals (5.NBT.1–4)
+  G.g5_place = (l) => {
+    if (l === 1) {
+      if (Math.random() < 0.5) { const e = R(2, 6); return { q: `Evaluate:${big(pw(10, e))}`, a: num(10 ** e), hint: `${pw(10, e)} is 1 followed by ${e} zeros.`, explain: `${pw(10, e)} = ${fmt(10 ** e)}.` }; }
+      const A = R(11, 999), pl = R(1, 2), e = R(1, 3), as = decStr(A, pl);
+      return { q: `Multiply:${big(`${as} × ${pw(10, e)}`)}`, a: num(rnd((A / 10 ** pl) * 10 ** e)), hint: `× ${pw(10, e)} moves the decimal point ${e} place${e > 1 ? 's' : ''} right.`, explain: `${as} × ${fmt(10 ** e)} = ${fmt(rnd((A / 10 ** pl) * 10 ** e))}.` };
+    }
+    if (l === 2) {
+      let A, B; do { A = R(1, 999); B = R(1, 999); } while (A === B);
+      const av = A / 10 ** 3, bv = B / 10 ** 3;
+      const as = trimDec(A, 3) || '0', bs = trimDec(B, 3) || '0';
+      if (as === bs) return G.g5_place(l);
+      const s = av > bv ? '&gt;' : '&lt;';
+      return { q: `Which symbol makes this true?${big(`${as} &nbsp;?&nbsp; ${bs}`)}`, a: choiceFixed(['&lt;', '&gt;', '='], s), hint: `Write both with three decimal places (add zeros), then compare digit by digit.`, explain: `${decStr(A, 3)} vs ${decStr(B, 3)}, so ${as} ${s} ${bs}.` };
+    }
+    if (Math.random() < 0.5) {
+      const U = R(1001, 99999), p = pick([1, 2]), ans = Math.round(U / 10 ** (3 - p)) / 10 ** p;
+      return { q: `🎯 <b>Rounding:</b> round to the nearest <b>${p === 1 ? 'tenth' : 'hundredth'}</b>.${big(decStr(U, 3))}`, a: num(ans), hint: `Look at the digit just to the right of the ${p === 1 ? 'tenths' : 'hundredths'} place. 5 or more rounds up.`, explain: `${decStr(U, 3)} rounds to ${ans.toFixed(p)}.` };
+    }
+    let U; do { U = R(1001, 99999); } while (U % 10 === 0);
+    return { q: `📍 <b>Place value:</b> what is the <b>thousandths</b> digit worth in <b>${decStr(U, 3)}</b>? (Write it as a decimal.)`, a: num((U % 10) / 1000), hint: `The thousandths place is the 3rd digit after the decimal point.`, explain: `The thousandths digit is ${U % 10}, so it is worth ${((U % 10) / 1000).toFixed(3)}.` };
+  };
+
+  // ---- Grade 5: coordinate plane & numerical patterns (5.G.1–2, 5.OA.3)
+  G.g5_coord = (l) => {
+    if (l === 1) {
+      const x = R(0, 8), y = R(0, 8), a = R(1, 6), b = R(1, 6), c = pt(x + a, y + b);
+      return { q: `A unicorn starts at <b>${pt(x, y)}</b>. She trots <b>${a} right</b> and <b>${b} up</b>. Where is she now?`, a: choice(c, [pt(y + b, x + a), pt(x + b, y + a), pt(x - a < 0 ? x + a + 1 : x - a, y + b), pt(x + a, y)]), hint: `Right changes the first number (x). Up changes the second number (y).`, explain: `x: ${x} + ${a} = ${x + a}; y: ${y} + ${b} = ${y + b}. So ${c}.` };
+    }
+    if (l === 2) {
+      const x1 = R(1, 6), x2 = x1 + R(2, 6), y1 = R(1, 6), y2 = y1 + R(2, 6), ar = Math.random() < 0.5;
+      return { q: `A rectangle has corners at <b>${pt(x1, y1)}</b>, <b>${pt(x2, y1)}</b>, <b>${pt(x2, y2)}</b> and <b>${pt(x1, y2)}</b>. What is its <b>${ar ? 'area' : 'perimeter'}</b>?`, a: num(ar ? (x2 - x1) * (y2 - y1) : 2 * (x2 - x1 + y2 - y1)), hint: `Width = ${x2} − ${x1}. Height = ${y2} − ${y1}.`, explain: `Width ${x2 - x1}, height ${y2 - y1}: ${ar ? `area = ${(x2 - x1) * (y2 - y1)}` : `perimeter = ${2 * (x2 - x1 + y2 - y1)}`}.` };
+    }
+    const a = R(2, 6), k = R(2, 4), b = a * k, n = R(3, 8);
+    return { q: `Two unicorn patterns both start at 0. Pattern A adds <b>${a}</b> each step. Pattern B adds <b>${b}</b> each step. When Pattern A reaches <b>${a * n}</b>, what is Pattern B at?`, a: num(b * n), hint: `Pattern B grows ${k} times as fast as Pattern A.`, explain: `A reaches ${a * n} after ${n} steps. B after ${n} steps: ${b} × ${n} = ${b * n}.` };
+  };
+
+  // ---- Grade 6: expressions & inequalities (6.EE.2–4, 6.EE.8)
+  const X = '<i>x</i>', N = '<i>n</i>';
+  G.g6_expr = (l) => {
+    if (l === 1) {
+      const a = R(2, 9), b = R(2, 12);
+      const T = pick([
+        [`${b} less than ${a} times a number <i>n</i>`, `${a}${N} ${MINUS} ${b}`, [`${b} ${MINUS} ${a}${N}`, `${a}(${N} ${MINUS} ${b})`, `${a} + ${N} ${MINUS} ${b}`]],
+        [`${b} more than a number <i>n</i>, divided by ${a}`, `(${N} + ${b}) ÷ ${a}`, [`${N} + ${b} ÷ ${a}`, `${a} ÷ (${N} + ${b})`, `${a}(${N} + ${b})`]],
+        [`${a} times the sum of a number <i>n</i> and ${b}`, `${a}(${N} + ${b})`, [`${a}${N} + ${b}`, `${a} + ${N} + ${b}`, `${N}(${a} + ${b})`]],
+        [`the product of ${a} and a number <i>n</i>, plus ${b}`, `${a}${N} + ${b}`, [`${a}(${N} + ${b})`, `${a} + ${b}${N}`, `${b}${N} + ${a}`]],
+      ]);
+      return { q: `Which expression means: <b>"${T[0]}"</b>?`, a: choice(T[1], T[2]), hint: `Read carefully. "Less than" flips the order, and "the sum of" means the adding happens first (parentheses).`, explain: `"${T[0]}" is written ${T[1]}.` };
+    }
+    if (l === 2) {
+      const a = R(2, 9), b = R(2, 12), c = R(2, 9);
+      if (Math.random() < 0.5) return { q: `Which expression is <b>equivalent</b> to <b>${a}(${X} + ${b})</b>?`, a: choice(`${a * 1}${X} + ${a * b}`, [`${a}${X} + ${b}`, `${a + b}${X}`, `${X} + ${a * b}`]), hint: `Distribute: multiply ${a} by BOTH ${X} and ${b}.`, explain: `${a} × x + ${a} × ${b} = ${a}x + ${a * b}.` };
+      return { q: `Which expression is <b>equivalent</b> to <b>${a}${X} + ${b} + ${c}${X}</b>?`, a: choice(`${a + c}${X} + ${b}`, [`${a + b + c}${X}`, `${a * c}${X} + ${b}`, `${a + c}${X} + ${b}${X}`]), hint: `Combine like terms: the x terms go together.`, explain: `${a}x + ${c}x = ${a + c}x, so ${a + c}x + ${b}.` };
+    }
+    if (Math.random() < 0.5) {
+      const T = pick([['at least', '≥'], ['more than', '&gt;'], ['at most', '≤'], ['fewer than', '&lt;']]), k = R(5, 40);
+      return { q: `<b>${T[0][0].toUpperCase() + T[0].slice(1)} ${k}</b> guests are coming to the royal ball. Which inequality shows the number of guests <i>g</i>?`, a: choiceFixed([`<i>g</i> &gt; ${k}`, `<i>g</i> ≥ ${k}`, `<i>g</i> &lt; ${k}`, `<i>g</i> ≤ ${k}`], `<i>g</i> ${T[1]} ${k}`), hint: `"At least" includes the number itself (≥). "More than" does not (>).`, explain: `"${T[0]} ${k}" is g ${T[1].replace('&gt;', '>').replace('&lt;', '<')} ${k}.` };
+    }
+    const b = R(2, 20), c = b + R(3, 25), gt = Math.random() < 0.5, t = c - b;
+    const good = gt ? t + R(1, 6) : t - R(1, Math.min(6, t));
+    const bad = gt ? [t, t - 1, t - R(2, 6)] : [t, t + 1, t + R(2, 6)];
+    return { q: `Which value of ${X} makes this inequality <b>true</b>?${big(`${X} + ${b} ${gt ? '&gt;' : '&lt;'} ${c}`)}`, a: choice(String(good), bad.map(String)), hint: `Try each choice: add ${b} and compare with ${c}. ${gt ? 'It must be MORE than' : 'It must be LESS than'} ${c} (not equal).`, explain: `${good} + ${b} = ${good + b}, which is ${gt ? 'greater' : 'less'} than ${c}.` };
+  };
+
+  // ---- Grade 6: multi-digit decimal operations & long division (6.NS.2–3)
+  G.g6_dec = (l) => {
+    if (l === 1) {
+      const A = R(1001, 99999), B = R(101, 9999), pa = R(1, 3), pb = R(1, 3);
+      let a = A * 10 ** (3 - pa), b = B * 10 ** (3 - pb), as = decStr(A, pa), bs = decStr(B, pb);
+      if (Math.random() < 0.5) { if (a < b) { [a, b] = [b, a]; [as, bs] = [bs, as]; } return { q: `Subtract:${big(`${as} ${MINUS} ${bs}`)}`, a: num((a - b) / 1000), hint: `Line up the decimal points and fill empty places with zeros.`, explain: `${as} − ${bs} = ${fmt((a - b) / 1000)}.` }; }
+      return { q: `Add:${big(`${as} + ${bs}`)}`, a: num((a + b) / 1000), hint: `Line up the decimal points and fill empty places with zeros.`, explain: `${as} + ${bs} = ${fmt((a + b) / 1000)}.` };
+    }
+    if (l === 2) {
+      if (Math.random() < 0.5) { const d = R(12, 89), q = R(102, 999), n = d * q; return { q: `Divide:${big(`${fmt(n)} ÷ ${d}`)}`, a: num(q), hint: `Long division: how many ${d}s fit into the first digits of ${fmt(n)}?`, explain: `${d} × ${q} = ${fmt(n)}.` }; }
+      const A = R(12, 999), pa = R(1, 2), B = R(2, 99), pb = R(1, 2);
+      return { q: `Multiply:${big(`${decStr(A, pa)} × ${decStr(B, pb)}`)}`, a: num((A * B) / 10 ** (pa + pb)), hint: `Multiply ${A} × ${B} as whole numbers, then count ${pa + pb} decimal places.`, explain: `${A} × ${B} = ${fmt(A * B)}. With ${pa + pb} decimal places: ${fmt((A * B) / 10 ** (pa + pb))}.` };
+    }
+    const B = R(2, 99), pb = R(1, 2), Q = R(11, 999), units = B * Q, places = pb + 1;
+    const dividend = trimDec(units, places), divisor = decStr(B, pb);
+    return { q: `Divide:${big(`${dividend} ÷ ${divisor}`)}`, a: num(Q / 10), hint: `Move the decimal point ${pb} place${pb > 1 ? 's' : ''} right in BOTH numbers so you divide by a whole number (${B}).`, explain: `${dividend} ÷ ${divisor} = ${trimDec(units, places - pb)} ÷ ${B} = ${fmt(Q / 10)}.` };
+  };
+
+  // ---- Grade 7: rational numbers (7.NS.1–2)
+  G.g7_rat = (l) => {
+    if (l === 1) {
+      let b, d; do { b = R(2, 8); d = R(2, 8); } while (lcm(b, d) > 24);
+      const a = nz(-7, 7), c = nz(-7, 7), sub = Math.random() < 0.5;
+      const res = sub ? a * d - c * b : a * d + c * b;
+      return { q: `${sub ? 'Subtract' : 'Add'}:${big(`${fr(a, b)} ${sub ? MINUS : '+'} ${c < 0 ? `(${fr(c, d)})` : fr(c, d)}`)}`, a: frac(res, b * d), hint: `Use a common denominator (${lcm(b, d)}). Watch the signs!${sub ? ' Subtracting a negative is adding.' : ''}`, explain: `= ${fracHTML(res, b * d)}.` };
+    }
+    if (l === 2) {
+      if (Math.random() < 0.5) {
+        const A = nz(-50, 50), B = nz(-50, 50);
+        if (A % 10 === 0 || B % 10 === 0) return G.g7_rat(l);
+        return { q: `Multiply:${big(`${sp(A / 10)} × ${sp(B / 10)}`)}`, a: num((A * B) / 100), hint: `Multiply ${Math.abs(A)} × ${Math.abs(B)}, place 2 decimal places, then decide the sign.`, explain: `${Math.abs(A * B)} → ${fmt(Math.abs(A * B) / 100)}, sign ${A * B > 0 ? '+' : '−'}: ${fmt((A * B) / 100)}.` };
+      }
+      const a = nz(-8, 8), b = R(2, 9), c = nz(-8, 8), d = R(2, 9);
+      return { q: `Divide:${big(`${a < 0 ? `(${fr(a, b)})` : fr(a, b)} ÷ ${c < 0 ? `(${fr(c, d)})` : fr(c, d)}`)}`, a: frac(a * d, b * c), hint: `Keep, change, flip. Then: same signs → +, different signs → −.`, explain: `${fr(a, b)} × ${fr(d, c)} = ${fracHTML(a * d, b * c)}.` };
+    }
+    if (Math.random() < 0.5) {
+      const rep = pick([[1, 3], [2, 3], [1, 6], [5, 6], [1, 9], [4, 9], [2, 7], [5, 11], [7, 12], [1, 12]]);
+      const term = shuffle([[1, 8], [3, 5], [7, 20], [3, 4], [9, 25], [5, 16], [1, 40], [7, 10]]).slice(0, 3);
+      return { q: `Which fraction makes a <b>repeating</b> decimal (one that goes on forever in a pattern)?`, a: choice(fr(...rep), term.map((t) => fr(...t))), hint: `In simplest form, if the denominator has only 2s and 5s as prime factors, the decimal stops. Otherwise it repeats.`, explain: `${fr(...rep)}'s denominator ${rep[1]} has a prime factor other than 2 or 5, so it repeats.` };
+    }
+    const a = nz(-40, 40) / 4, b = nz(-40, 40) / 4, c = nz(-40, 40) / 4, v = a + b - c;
+    return { q: `Evaluate:${big(`${fmt(a)} + ${sp(b)} ${MINUS} ${sp(c)}`)}`, a: num(v), hint: `Subtracting a negative is the same as adding a positive.`, explain: `${fmt(a)} + ${sp(b)} = ${fmt(a + b)}; ${fmt(a + b)} − ${sp(c)} = ${fmt(v)}.` };
+  };
+
+  // ---- Grade 7: solving inequalities (7.EE.4b)
+  const FLIP = { '&gt;': '&lt;', '&lt;': '&gt;', '≥': '≤', '≤': '≥' };
+  G.g7_ineq = (l) => {
+    const op = pick(['&gt;', '&lt;', '≥', '≤']), t = R(-9, 12);
+    let a, b;
+    if (l === 1) { a = 1; b = nz(-15, 15); }
+    else if (l === 2) { a = R(2, 9); b = nz(-15, 15); }
+    else { a = -R(2, 9); b = nz(-15, 15); }
+    const c = a * t + b, res = a < 0 ? FLIP[op] : op;
+    const lhs = `${term(a, X, true)}${constTerm(b)}`;
+    const ans = (o, v) => `${X} ${o} ${fmt(v)}`;
+    return { q: `Solve the inequality:${big(`${lhs} ${op} ${fmt(c)}`)}`, a: choice(ans(res, t), [ans(FLIP[res], t), ans(res, -t === t ? t + 1 : -t), ans(res, c - b), ans(op === res ? FLIP[op] : op, t)]), hint: a < 0 ? `When you divide both sides by a NEGATIVE number, flip the inequality sign!` : `Solve it like an equation: undo the ${b > 0 ? '+' : '−'} ${Math.abs(b)}${a > 1 ? `, then divide by ${a}` : ''}.`, explain: `${term(a, 'x', true)} ${op} ${fmt(c - b)} → x ${res} ${fmt(t)}${a < 0 ? ' (flipped because we divided by a negative)' : ''}.` };
+  };
+
+  // ---- Grade 7: scale drawings & prisms (7.G.1, 7.G.6)
+  G.g7_scale = (l) => {
+    if (l === 1) { const s = pick([2, 3, 4, 5, 10]), d = R(2, 12) + pick([0, 0.5]); return { q: `On the dojo blueprint, <b>1 inch = ${s} feet</b>. The sparring mat is <b>${d} inches</b> long on the drawing. How long is the real mat, in feet?`, a: num(d * s), hint: `Each inch stands for ${s} feet. Multiply.`, explain: `${d} × ${s} = ${fmt(d * s)} feet.` }; }
+    if (l === 2) {
+      if (Math.random() < 0.5) { const s = pick([2, 4, 5, 10]), real = s * R(3, 20); return { q: `On a scale drawing, <b>1 cm = ${s} m</b>. The real dojo is <b>${real} m</b> long. How long is it on the drawing, in cm?`, a: num(real / s), hint: `How many groups of ${s} m are in ${real} m?`, explain: `${real} ÷ ${s} = ${real / s} cm.` }; }
+      const k = R(2, 5), L = R(2, 8), W = R(2, 8);
+      return { q: `A ${L} cm by ${W} cm photo of a karate belt is enlarged with a scale factor of <b>${k}</b>. What is the <b>area</b> of the new photo, in square cm?`, a: num(L * k * W * k), hint: `Multiply BOTH sides by ${k} first, then find the area.`, explain: `${L * k} × ${W * k} = ${L * k * W * k} sq cm (that's ${k * k} times bigger!).` };
+    }
+    const b = 2 * R(2, 8), h = R(2, 10), len = R(3, 15);
+    if (Math.random() < 0.5) return { q: `A triangular prism-shaped tent has a triangle base of <b>${b} ft</b>, triangle height <b>${h} ft</b>, and is <b>${len} ft</b> long. What is its volume?`, a: num((b * h * len) / 2), hint: `Volume = (area of the triangle) × length = (${fr(1, 2)} × ${b} × ${h}) × ${len}.`, explain: `${fr(1, 2)} × ${b} × ${h} = ${(b * h) / 2}; × ${len} = ${(b * h * len) / 2} cubic ft.` };
+    const L = R(2, 12), W = R(2, 10), H = R(2, 10);
+    return { q: `A box of karate gear is <b>${L} in</b> long, <b>${W} in</b> wide and <b>${H} in</b> tall. What is its <b>volume</b>?`, a: num(L * W * H), hint: `V = length × width × height.`, explain: `${L} × ${W} × ${H} = ${L * W * H} cubic in.` };
+  };
+
+  // ---- Grade 8: systems of equations (8.EE.8)
+  G.g8_sys = (l) => {
+    const x0 = R(-6, 6), y0 = R(-6, 9);
+    if (l < 3) {
+      let m1, m2; do { m1 = nz(-4, 4); m2 = nz(-4, 4); } while (m1 === m2);
+      const b1 = y0 - m1 * x0, b2 = y0 - m2 * x0, eq = (m, b) => `<i>y</i> = ${term(m, X, true)}${constTerm(b)}`;
+      if (l === 1) return { q: `Which point is a solution to <b>both</b> equations?<br>${eq(m1, b1)}<br>${eq(m2, b2)}`, a: choice(pt(x0, y0), [pt(y0, x0), pt(x0 + 1, y0 + m1), pt(x0 - 1, y0 - m2), pt(-x0, y0)]), hint: `Plug each point in. The answer must work in BOTH equations.`, explain: `At x = ${fmt(x0)}: ${fmt(m1)}(${fmt(x0)})${constTerm(b1)} = ${fmt(y0)} and ${fmt(m2)}(${fmt(x0)})${constTerm(b2)} = ${fmt(y0)}. ✔` };
+      return { q: `Solve the system. What is <i>x</i>?<br>${eq(m1, b1)}<br>${eq(m2, b2)}`, a: num(x0), hint: `Set them equal: ${term(m1, 'x', true)}${constTerm(b1)} = ${term(m2, 'x', true)}${constTerm(b2)}.`, explain: `${term(m1 - m2, 'x', true)} = ${fmt(b2 - b1)}, so x = ${fmt(x0)} (and y = ${fmt(y0)}).` };
+    }
+    let a1, b1, a2, b2; do { a1 = R(1, 5); b1 = nz(-4, 4); a2 = R(1, 5); b2 = nz(-4, 4); } while (a1 * b2 - a2 * b1 === 0);
+    const c1 = a1 * x0 + b1 * y0, c2 = a2 * x0 + b2 * y0, askY = Math.random() < 0.5;
+    const eq = (a, b, c) => `${term(a, X, true)}${term(b, '<i>y</i>')} = ${fmt(c)}`;
+    return { q: `Solve the system. What is <b>${askY ? 'y' : 'x'}</b>?<br>${eq(a1, b1, c1)}<br>${eq(a2, b2, c2)}`, a: num(askY ? y0 : x0), hint: `Use elimination: multiply one or both equations so a variable cancels when you add or subtract them.`, explain: `The solution is x = ${fmt(x0)}, y = ${fmt(y0)}. Check: ${a1}(${fmt(x0)}) + ${sp(b1)}(${fmt(y0)}) = ${fmt(c1)} ✔` };
+  };
+
+  // ---- Grade 8: volume of cylinders, cones & spheres (8.G.9)
+  G.g8_vol = (l) => {
+    const note = ' Use π ≈ 3.14.';
+    if (l === 1) { const r = R(1, 9), h = R(2, 15); return { q: `A cylinder-shaped star jar has radius <b>${r} cm</b> and height <b>${h} cm</b>. What is its volume?${note}`, a: num((314 * r * r * h) / 100, 0.011), hint: `V = π × r² × h.`, explain: `3.14 × ${r * r} × ${h} = ${fmt((314 * r * r * h) / 100)} cubic cm.` }; }
+    if (l === 2) { const r = R(1, 9), h = 3 * R(1, 6); return { q: `A cone-shaped comet has radius <b>${r} m</b> and height <b>${h} m</b>. What is its volume?${note}`, a: num((314 * r * r * h) / 300, 0.011), hint: `V = ${fr(1, 3)} × π × r² × h. (A cone is ${fr(1, 3)} of a cylinder.)`, explain: `${fr(1, 3)} × 3.14 × ${r * r} × ${h} = ${fmt((314 * r * r * h) / 300)} cubic m.` }; }
+    const r = pick([3, 6, 9]);
+    return { q: `A sphere-shaped planet model has radius <b>${r} in</b>. What is its volume?${note}`, a: num((4 * 314 * r ** 3) / 300, 0.011), hint: `V = ${fr(4, 3)} × π × r³. Here r³ = ${r ** 3}.`, explain: `${fr(4, 3)} × 3.14 × ${r ** 3} = ${fmt((4 * 314 * r ** 3) / 300)} cubic in.` };
+  };
+
+  // ---- Grade 8: transformations on the coordinate plane (8.G.1–4)
+  G.g8_trans = (l) => {
+    let x, y; do { x = nz(-8, 8); y = nz(-8, 8); } while (Math.abs(x) === Math.abs(y));
+    const P = pt(x, y);
+    if (l === 1) {
+      const a = nz(-6, 6), b = nz(-6, 6), dir = `${Math.abs(a)} ${a > 0 ? 'right' : 'left'} and ${Math.abs(b)} ${b > 0 ? 'up' : 'down'}`;
+      return { q: `Point <b>${P}</b> is <b>translated</b> ${dir}. Where does it land?`, a: choice(pt(x + a, y + b), [pt(x + b, y + a), pt(x - a, y - b), pt(x + a, y - b), pt(x - a, y + b)]), hint: `Left/right changes x. Up/down changes y.`, explain: `(${fmt(x)} ${a > 0 ? '+' : '−'} ${Math.abs(a)}, ${fmt(y)} ${b > 0 ? '+' : '−'} ${Math.abs(b)}) = ${pt(x + a, y + b)}.` };
+    }
+    const opts = { rx: pt(x, -y), ry: pt(-x, y), r180: pt(-x, -y), r90: pt(-y, x), r270: pt(y, -x), swap: pt(y, x) };
+    if (l === 2) {
+      const ax = Math.random() < 0.5 ? 'x' : 'y', c = ax === 'x' ? opts.rx : opts.ry;
+      return { q: `Point <b>${P}</b> is <b>reflected</b> over the <b>${ax}-axis</b>. Where does it land?`, a: choice(c, [ax === 'x' ? opts.ry : opts.rx, opts.r180, opts.swap]), hint: `Reflecting over the ${ax}-axis flips the sign of the ${ax === 'x' ? 'y' : 'x'}-coordinate only.`, explain: `${P} → ${c}.` };
+    }
+    const k = pick(['r90', 'r180', 'dil']);
+    if (k === 'dil') { const s = R(2, 4); return { q: `Point <b>${P}</b> is <b>dilated</b> by a scale factor of <b>${s}</b> from the origin. Where does it land?`, a: choice(pt(s * x, s * y), [pt(x + s, y + s), pt(s * x, y), opts.r180, pt(-s * x, -s * y)]), hint: `Dilation from the origin multiplies BOTH coordinates by ${s}.`, explain: `(${s} × ${fmt(x)}, ${s} × ${fmt(y)}) = ${pt(s * x, s * y)}.` }; }
+    const c = opts[k];
+    return { q: `Point <b>${P}</b> is <b>rotated ${k === 'r90' ? '90° counterclockwise' : '180°'}</b> around the origin. Where does it land?`, a: choice(c, [k === 'r90' ? opts.r270 : opts.r90, k === 'r90' ? opts.r180 : opts.rx, opts.swap, opts.ry]), hint: k === 'r90' ? `90° counterclockwise: (x, y) → (−y, x).` : `180°: (x, y) → (−x, −y).`, explain: `${P} → ${c}.` };
   };
 
   // ---------- public API ----------

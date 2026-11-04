@@ -21,6 +21,8 @@
         { topic: 'g4_word', name: 'Sunken Ship Treasure', skill: 'Word problems: area, perimeter & multi-step', story: 'A sunken ship is full of puzzles! Solve them to unlock the treasure chest.', treasure: '🔱', treasureName: 'Golden Trident' },
         { topic: 'g4_dec', name: 'Decimal Bubbles', skill: 'Tenths, hundredths & comparing decimals', story: 'Every bubble holds a decimal. Pop them in the right order!', treasure: '🐋', treasureName: 'Baby Whale Friend' },
         { topic: 'g4_angle', name: 'Anglerfish Angles', skill: 'Angles, turns & clock angles', story: 'The anglerfish lights up the deep sea, but only if you measure the angles!', treasure: '🦑', treasureName: 'Squid Buddy' },
+        { topic: 'g4_factor', name: 'Factor Fish Families', skill: 'Factors, multiples, prime & composite', story: 'Fish swim in families of factors. Find which numbers belong together!', treasure: '🐟', treasureName: 'Rainbow Minnow' },
+        { topic: 'g4_fracmul', name: 'Snack-Time Fractions', skill: 'Multiplying a fraction by a whole number', story: 'Feeding time! Every fish gets a fraction of a snack. How much in all?', treasure: '🦀', treasureName: 'Crabby Pal' },
       ],
     },
     {
@@ -36,6 +38,9 @@
         { topic: 'g5_fmul', name: 'Butterfly Garden', skill: 'Multiplying & dividing fractions', story: 'The butterflies flutter in fractional groups. Multiply and divide to count them!', treasure: '🦋', treasureName: 'Butterfly Wings' },
         { topic: 'g5_ops', name: 'Order of the Horn', skill: 'Order of operations', story: 'Unicorn magic only works if you follow the right ORDER. Parentheses, exponents, multiply, divide, add, subtract!', treasure: '✨', treasureName: 'Sparkle Dust' },
         { topic: 'g5_word', name: 'Unicorn Market', skill: 'Word problems: volume, money & fractions', story: 'The unicorn market is busy today! Help the shopkeepers solve their tricky problems.', treasure: '🍎', treasureName: 'Golden Apple' },
+        { topic: 'g5_longdiv', name: 'Long Division Lane', skill: 'Multi-digit multiplication & long division', story: 'The unicorn carriages are packed with big numbers. Divide them up fairly!', treasure: '🎠', treasureName: 'Carousel Pony' },
+        { topic: 'g5_place', name: 'Decimal Dewdrops', skill: 'Decimal place value, powers of 10 & rounding', story: 'Each dewdrop holds a decimal down to the thousandths. Sort and round them!', treasure: '💧', treasureName: 'Magic Dewdrop' },
+        { topic: 'g5_coord', name: 'Rainbow Grid', skill: 'Coordinate plane & number patterns', story: 'The meadow is laid out on a magic grid. Help Sparkle find her way!', treasure: '🗺️', treasureName: 'Meadow Map' },
       ],
     },
     {
@@ -53,6 +58,8 @@
         { topic: 'g6_word', name: 'The Royal Ball', skill: 'Word problems: rates, discounts & area', story: 'The Royal Ball is tonight, and everything needs to be planned perfectly!', treasure: '💍', treasureName: 'Royal Ring' },
         { topic: 'g6_int', name: 'Mirror Hall Integers', skill: 'Negative numbers, absolute value & the coordinate plane', story: 'The Hall of Mirrors flips everything to its opposite. Find your way through!', treasure: '🗝️', treasureName: 'Silver Key' },
         { topic: 'g6_geo', name: 'Treasury Geometry', skill: 'Area, volume & surface area', story: 'The royal treasury is packed with boxes and banners. Measure them all!', treasure: '💎', treasureName: 'Royal Gem' },
+        { topic: 'g6_expr', name: 'Potion Expressions', skill: 'Writing expressions, equivalent expressions & inequalities', story: 'The royal potion book is written in algebra. Translate the recipes!', treasure: '🧪', treasureName: 'Sparkle Potion' },
+        { topic: 'g6_dec', name: 'Royal Treasury Decimals', skill: 'Multi-digit decimal operations & long division', story: 'The royal accountant needs exact answers, down to the thousandth!', treasure: '🪙', treasureName: 'Gold Coin' },
       ],
     },
     {
@@ -68,6 +75,9 @@
         { topic: 'g7_pct', name: 'Proportion Power', skill: 'Proportions, tax, discounts & percent change', story: 'Balance is everything in karate — and in proportions! Keep both sides equal.', treasure: '🟦', treasureName: 'Blue Belt' },
         { topic: 'g7_geo', name: 'Circle of Chance', skill: 'Probability, circles & angles', story: 'The training ring is a circle and the tournament draw is left to chance!', treasure: '🟫', treasureName: 'Brown Belt' },
         { topic: 'g7_word', name: 'Board-Breaking Challenge', skill: 'Word problems: rates, integers & equations', story: 'Break through the toughest word problems like a stack of boards!', treasure: '⬛', treasureName: 'Black Belt' },
+        { topic: 'g7_rat', name: 'Yin-Yang Rationals', skill: 'Negative fractions & decimals, repeating decimals', story: 'Balance positives and negatives, like yin and yang!', treasure: '☯️', treasureName: 'Balance Charm' },
+        { topic: 'g7_ineq', name: 'Inequality Dojo', skill: 'Solving inequalities (flip the sign!)', story: 'Some answers are a whole range! Solve the inequalities like a true master.', treasure: '🎖️', treasureName: 'Master Medal' },
+        { topic: 'g7_scale', name: 'Blueprint Builder', skill: 'Scale drawings, area scaling & volume of prisms', story: 'Sensei is building a new dojo. Read the blueprints!', treasure: '📐', treasureName: 'Golden Ruler' },
       ],
     },
     {
@@ -83,6 +93,9 @@
         { topic: 'g8_exp', name: 'Exponent Galaxy', skill: 'Exponent rules & scientific notation', story: 'The galaxy is HUGE and atoms are TINY. Scientific notation handles both!', treasure: '🪐', treasureName: 'Ringed Planet' },
         { topic: 'g8_pyth', name: 'Pythagoras Peaks', skill: 'Pythagorean theorem & roots', story: 'Climb the crystal peaks using right triangles and square roots!', treasure: '💠', treasureName: 'Crystal Prism' },
         { topic: 'g8_word', name: 'The Grand Quest', skill: 'Word problems: systems, functions & geometry', story: 'Friends from every realm need your help — unicorns, princesses, ninjas and dragons!', treasure: '🏆', treasureName: 'Champion Trophy' },
+        { topic: 'g8_sys', name: 'Twin Star Systems', skill: 'Systems of linear equations', story: 'Two shooting stars cross paths. Find exactly where they meet!', treasure: '✨', treasureName: 'Twin Stardust' },
+        { topic: 'g8_vol', name: 'Planet Volumes', skill: 'Volume of cylinders, cones & spheres', story: 'Measure the planets, comets and star jars of the kingdom!', treasure: '🌍', treasureName: 'Mini Planet' },
+        { topic: 'g8_trans', name: 'Constellation Moves', skill: 'Translations, reflections, rotations & dilations', story: 'Move the constellations across the sky grid to the right spots!', treasure: '🔭', treasureName: 'Star Telescope' },
       ],
     },
 

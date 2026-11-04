@@ -5,8 +5,8 @@
   const app = document.getElementById('app');
 
   const SAVE_KEY = 'mathquest.v1';
-  const Q_PER_MISSION = 8, BOSS_HP = 10, HEARTS = 3, HINT_COST = 2, START_GEMS = 10;
-  const DAILY_COUNT = 10, FREEZE_MS = 3000;
+  const Q_PER_MISSION = 10, BOSS_HP = 12, HEARTS = 3, HINT_COST = 2, START_GEMS = 10;
+  const DAILY_COUNT = 12, FREEZE_MS = 3000;
   const MAIN_IDX = WORLDS.map((w, i) => (w.bonus ? -1 : i)).filter((i) => i >= 0);
   const BONUS_IDX = WORLDS.map((w, i) => (w.bonus ? i : -1)).filter((i) => i >= 0);
   const LAST_MAIN = MAIN_IDX[MAIN_IDX.length - 1];
@@ -21,7 +21,7 @@
   ];
   const BADGES = [
     { id: 'first', e: '🎉', name: 'First Splash', desc: 'Finish your first mission' },
-    { id: 'perfect', e: '💯', name: 'Flawless', desc: 'Get 8 out of 8 in a mission' },
+    { id: 'perfect', e: '💯', name: 'Flawless', desc: 'Get 10 out of 10 in a mission' },
     { id: 'streak10', e: '🔥', name: 'On Fire', desc: 'Answer 10 in a row correctly' },
     { id: 'streak25', e: '☄️', name: 'Unstoppable', desc: 'Answer 25 in a row correctly' },
     { id: 'nohint3', e: '🧠', name: 'Big Brain', desc: 'Earn 3 stars without using a hint' },
@@ -33,7 +33,7 @@
     { id: 'rainbow', e: '🌈', name: 'Rainbow Restored', desc: 'Defeat all five main bosses' },
     { id: 'bonus', e: '🧜‍♀️', name: 'Explorer', desc: 'Defeat a bonus-world boss' },
     { id: 'daily1', e: '📅', name: 'Daily Hero', desc: 'Finish a Daily Challenge' },
-    { id: 'daily10', e: '🌟', name: 'Perfect Day', desc: 'Get 10/10 on a Daily Challenge' },
+    { id: 'daily10', e: '🌟', name: 'Perfect Day', desc: 'Get every Daily Challenge question right' },
     { id: 'dstreak3', e: '🔥', name: 'Three in a Row', desc: 'Play the Daily Challenge 3 days in a row' },
     { id: 'dstreak7', e: '🗓️', name: 'Week Warrior', desc: 'Play the Daily Challenge 7 days in a row' },
     { id: 'race1', e: '🏁', name: 'Speedster', desc: 'Win a race' },
@@ -238,7 +238,7 @@
       <h1 class="title sm">🗺️ The Realms</h1>
       ${rainbowBar(p)}
       <div class="feature-row">
-        <button class="card feature daily ${today ? 'done' : ''}" data-act="daily"><span class="fe">📅</span><span><b>Daily Challenge</b>${today ? `Done today: ${today.correct}/${DAILY_COUNT} ✅` : '10 new questions today! Win bonus 💎'}${p.daily.streak > 1 ? `<br><span class="streak">🔥 ${p.daily.streak}-day streak</span>` : ''}</span></button>
+        <button class="card feature daily ${today ? 'done' : ''}" data-act="daily"><span class="fe">📅</span><span><b>Daily Challenge</b>${today ? `Done today: ${today.correct}/${DAILY_COUNT} ✅` : `${DAILY_COUNT} new questions today! Win bonus 💎`}${p.daily.streak > 1 ? `<br><span class="streak">🔥 ${p.daily.streak}-day streak</span>` : ''}</span></button>
         <button class="card feature race" data-act="race-setup"><span class="fe">🏁</span><span><b>Race a Friend</b>Head-to-head on one screen${p.races.played ? `<br>🏆 ${p.races.wins} wins` : ''}</span></button>
       </div>
       <div class="menu-row">
@@ -289,7 +289,7 @@
         <p>${w.guide.emoji} <i>${m.story}</i></p>
         <ul class="rules">
           <li>${Q_PER_MISSION} questions. Get 3 in a row right and you level up: 🌱 → 🔥 → ⚡</li>
-          <li>★ = 5 correct &nbsp; ★★ = 7 correct &nbsp; ★★★ = 7 correct <b>and</b> reach ⚡ Expert</li>
+          <li>★ = 6 correct &nbsp; ★★ = 8 correct &nbsp; ★★★ = 8 correct <b>and</b> reach ⚡ Expert</li>
           ${m.timed && store.settings.timer !== 'off' ? `<li>⏱️ Speed mission! ${m.timed * (store.settings.timer === 'relaxed' ? 2 : 1)} seconds per question.</li>` : ''}
           <li>Stuck? A hint costs ${HINT_COST} 💎</li>
         </ul>
@@ -325,7 +325,7 @@
       const bonus = BONUS_IDX.flatMap((wi) => WORLDS[wi].missions.map((m) => m.topic));
       const seen = new Set(), list = [];
       for (let i = 0; i < DAILY_COUNT; i++) {
-        const lvl = i < 3 ? 1 : i < 7 ? 2 : 3, pool = i === 4 || i === 8 ? bonus : main;
+        const lvl = i < 4 ? 1 : i < 8 ? 2 : 3, pool = i === 5 || i === 10 ? bonus : main;
         list.push(Q.generate(pick(pool), lvl, seen, grade));
       }
       return list;
@@ -500,7 +500,7 @@
 
   function finishMission() {
     const p = P(), w = WORLDS[S.wi], m = w.missions[S.mi], key = mkey(S.wi, S.mi), last = w.missions.length - 1;
-    const stars = S.correct >= 7 && S.reachedHard ? 3 : S.correct >= 7 ? 2 : S.correct >= 5 ? 1 : 0;
+    const stars = S.correct >= 8 && S.reachedHard ? 3 : S.correct >= 8 ? 2 : S.correct >= 6 ? 1 : 0;
     const prev = p.missions[key] || { stars: 0, best: 0, plays: 0 };
     const firstTreasure = stars > 0 && !prev.stars;
     const bonus = stars * 5 + (stars > prev.stars ? 5 : 0);
@@ -516,7 +516,7 @@
     screen = 'results';
     if (stars) { sfx.win(); confetti(['⭐', '🌈', ...w.deco]); }
     const nextUn = S.mi < last && missionUnlocked(p, S.wi, S.mi + 1);
-    const tip = stars === 0 ? 'You need 5 correct to earn a star. Use hints if you get stuck. You can do it!' : stars < 3 ? (S.reachedHard ? 'Get 7 correct to earn the third star!' : 'For ★★★, get 3 in a row right to climb to ⚡ Expert, and get 7 correct.') : 'Perfect mission! You are a math legend.';
+    const tip = stars === 0 ? 'You need 6 correct to earn a star. Use hints if you get stuck. You can do it!' : stars < 3 ? (S.reachedHard ? 'Get 8 correct to earn the third star!' : 'For ★★★, get 3 in a row right to climb to ⚡ Expert, and get 8 correct.') : 'Perfect mission! You are a math legend.';
     show(`${topbar(p, 'world:' + S.wi)}
       <div class="card results">
         <h2>${stars ? 'Mission complete!' : 'So close!'}</h2>
@@ -817,8 +817,8 @@
         <ul class="rules">
           <li>Each main world matches a grade (based on Common Core topics), with missions and a boss. Bonus worlds are always open and adapt to the player's grade.</li>
           <li>Missions adapt: 3 correct in a row raises the level (🌱 → 🔥 → ⚡), and 2 misses in a row lowers it. The level is saved per skill.</li>
-          <li>3 stars require 7/8 correct <i>and</i> reaching Expert, so kids have to push themselves.</li>
-          <li><b>Daily Challenge:</b> 10 questions per day at the player's grade, the same for everyone in that grade. The first try counts on the family scoreboard (ranked by correct answers, then time). There are no hints, and streaks earn bonus gems.</li>
+          <li>Missions have 10 questions. 3 stars require 8/10 correct <i>and</i> reaching Expert, so kids have to push themselves.</li>
+          <li><b>Daily Challenge:</b> 12 questions per day at the player's grade, the same for everyone in that grade. The first try counts on the family scoreboard (ranked by correct answers, then time). There are no hints, and streaks earn bonus gems.</li>
           <li><b>Race Mode:</b> two players on one screen, each answering at their own grade. A wrong answer freezes the player for 3 seconds and shows the right answer. A head-to-head record is kept.</li>
           <li>Progress is saved in this browser on this device.</li>
         </ul>
