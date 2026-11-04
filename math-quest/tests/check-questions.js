@@ -10,11 +10,11 @@ let failures = 0, total = 0;
 const fail = (msg, q) => { failures++; if (failures <= 25) console.error('FAIL:', msg, '\n   ', q && q.q); };
 
 for (const topic of Q.topics) {
-  for (const level of [1, 2, 3]) {
+  for (const grade of topic.startsWith('b_') ? [4, 5, 6, 7, 8] : [6]) for (const level of [1, 2, 3]) {
     for (let i = 0; i < 400; i++) {
       total++;
       let q;
-      try { q = Q.generate(topic, level); } catch (e) { fail(`${topic} L${level} threw ${e.stack}`); continue; }
+      try { q = Q.generate(topic, level, null, grade); } catch (e) { fail(`${topic} G${grade} L${level} threw ${e.stack}`); continue; }
       const text = q.q + q.hint + q.explain + Q.answerHTML(q.a);
       if (/undefined|NaN|Infinity|\[object/.test(text)) fail(`${topic} L${level} bad text`, q);
       const a = q.a;

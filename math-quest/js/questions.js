@@ -52,7 +52,7 @@
   const choiceFixed = (list, correct) => ({ kind: 'choice', choices: list.slice(), correct: list.indexOf(correct) });
 
   function parseAnswer(raw) {
-    const s = String(raw).replace(/,/g, '').replace(/−/g, '-').replace(/\$/g, '').replace(/\s+/g, ' ').trim();
+    const s = String(raw).replace(/,/g, '').replace(/−/g, '-').replace(/[$%]/g, '').replace(/\s+/g, ' ').trim();
     let m;
     if ((m = s.match(/^(-)?(\d+) (\d+)\/(\d+)$/))) {
       const w = +m[2], n = +m[3], d = +m[4];
@@ -725,12 +725,303 @@
     return { q: `The Rainbow Dragon is flying at <b>${s} m</b> and climbs <b>${rate} m</b> every second. After how many seconds will it reach <b>${s + rate * n} m</b>?`, a: num(n), hint: `Write y = ${rate}x + ${s} and set y = ${s + rate * n}.`, explain: `${s + rate * n} − ${s} = ${rate * n}; ${rate * n} ÷ ${rate} = ${n} seconds.` };
   };
 
+  // ======================= Extra Grade 4 missions =======================
+  const d1 = (x) => x.toFixed(1), d2 = (x) => x.toFixed(2);
+  G.g4_dec = (l) => {
+    if (l === 1) {
+      if (Math.random() < 0.5) { const n = R(1, 9); return { q: `Write as a decimal:${big(fr(n, 10))}`, a: num(n / 10), hint: `${fr(1, 10)} is one tenth, written 0.1.`, explain: `${fr(n, 10)} = ${n} tenths = ${d1(n / 10)}.` }; }
+      const n = R(1, 99); return { q: `Write as a decimal:${big(fr(n, 100))}`, a: num(n / 100), hint: `Hundredths use two places after the decimal point.`, explain: `${fr(n, 100)} = ${d2(n / 100)}.` };
+    }
+    if (l === 2) {
+      if (Math.random() < 0.5) {
+        const a = R(1, 9); let b; do { b = R(10, 99); } while (b % 10 === 0);
+        let L = d1(a / 10), Rt = d2(b / 100), lv1 = a * 10, rv = b;
+        if (Math.random() < 0.5) { [L, Rt] = [Rt, L]; [lv1, rv] = [rv, lv1]; }
+        const s = lv1 > rv ? '&gt;' : '&lt;';
+        return { q: `Which symbol makes this true?${big(`${L} &nbsp;?&nbsp; ${Rt}`)}`, a: choiceFixed(['&lt;', '&gt;', '='], s), hint: `Write tenths as hundredths: 0.${a} = 0.${a}0. Then compare.`, explain: `${d2(lv1 / 100)} vs ${d2(rv / 100)}, so ${L} ${s} ${Rt}.` };
+      }
+      const a = R(1, 9), b = R(1, 99);
+      return { q: `Add, and write the answer in hundredths:${big(`${fr(a, 10)} + ${fr(b, 100)} = ${fr('?', 100)}`)}`, a: num(10 * a + b), hint: `${fr(a, 10)} = ${fr(a * 10, 100)}. Now add the hundredths.`, explain: `${fr(a * 10, 100)} + ${fr(b, 100)} = ${fr(10 * a + b, 100)}.` };
+    }
+    let x, y; do { x = R(1, 9); y = R(1, 9); } while (x === y);
+    const vals = [x / 10, (10 * x + y) / 100, (10 * y + x) / 100, y / 100];
+    const strs = [d1(vals[0]), d2(vals[1]), d2(vals[2]), d2(vals[3])];
+    const most = Math.random() < 0.5;
+    const target = most ? Math.max(...vals) : Math.min(...vals);
+    const correct = strs[vals.indexOf(target)];
+    return { q: `Which decimal is the <b>${most ? 'greatest' : 'least'}</b>?`, a: choice(correct, strs.filter((s) => s !== correct)), hint: `Line them up as hundredths (0.${x} = 0.${x}0) and compare digit by digit.`, explain: `As hundredths: ${vals.map((v) => d2(v)).join(', ')}. The ${most ? 'greatest' : 'least'} is ${correct}.` };
+  };
+
+  G.g4_angle = (l) => {
+    if (l === 1) {
+      if (Math.random() < 0.5) { const t = pick([['a quarter turn', 90], ['a half turn', 180], ['a three-quarter turn', 270], ['a full turn', 360]]); return { q: `An anglerfish spins <b>${t[0]}</b>. How many degrees is that?`, a: num(t[1]), hint: `A full turn is 360°.`, explain: `${t[0]} = ${t[1]}°.` }; }
+      const a = R(20, 160); return { q: `Two angles sit together on a straight line. One is <b>${a}°</b>. What is the other?`, a: num(180 - a), hint: `A straight line makes 180°.`, explain: `180 − ${a} = ${180 - a}°.` };
+    }
+    if (l === 2) {
+      if (Math.random() < 0.5) { const a = R(10, 80); return { q: `A right angle is split into two angles. One is <b>${a}°</b>. What is the other?`, a: num(90 - a), hint: `A right angle is 90°.`, explain: `90 − ${a} = ${90 - a}°.` }; }
+      const a = R(60, 150), b = R(60, 150); return { q: `Three angles go all the way around a point. Two are <b>${a}°</b> and <b>${b}°</b>. What is the third?`, a: num(360 - a - b), hint: `All the way around a point is 360°.`, explain: `360 − ${a} − ${b} = ${360 - a - b}°.` };
+    }
+    if (Math.random() < 0.5) { const h = R(1, 11), ang = Math.min(h, 12 - h) * 30; return { q: `What is the smaller angle between the clock hands at <b>${h}:00</b>?`, a: num(ang), hint: `The clock is 360°, and each hour mark is 360 ÷ 12 = 30° apart.`, explain: `${Math.min(h, 12 - h)} hour marks × 30° = ${ang}°.` }; }
+    const k = pick(['Acute', 'Right', 'Obtuse', 'Straight']), deg = k === 'Acute' ? R(5, 85) : k === 'Right' ? 90 : k === 'Obtuse' ? R(95, 175) : 180;
+    return { q: `What kind of angle measures <b>${deg}°</b>?`, a: choiceFixed(['Acute', 'Right', 'Obtuse', 'Straight'], k), hint: `Acute < 90°, right = 90°, obtuse is between 90° and 180°, straight = 180°.`, explain: `${deg}° is ${k.toLowerCase()}.` };
+  };
+
+  // ======================= Extra Grade 6 missions =======================
+  G.g6_int = (l) => {
+    if (l === 1) {
+      const f = R(1, 3);
+      if (f === 1) { const n = nz(-50, 50); return { q: `Evaluate:${big(`|${fmt(n)}|`)}`, a: num(Math.abs(n)), hint: `Absolute value is the distance from 0. It is never negative.`, explain: `${fmt(n)} is ${Math.abs(n)} away from 0.` }; }
+      if (f === 2) { const n = nz(-40, 40); return { q: `What is the <b>opposite</b> of ${fmt(n)}?`, a: num(-n), hint: `Opposites are the same distance from 0 on different sides.`, explain: `The opposite of ${fmt(n)} is ${fmt(-n)}.` }; }
+      let a, b; do { a = R(-20, 5); b = R(-20, 5); } while (a === b);
+      const s = a > b ? '&gt;' : '&lt;';
+      return { q: `Which symbol makes this true?${big(`${fmt(a)} &nbsp;?&nbsp; ${fmt(b)}`)}`, a: choiceFixed(['&lt;', '&gt;', '='], s), hint: `On a number line, numbers to the right are greater.`, explain: `${fmt(a)} ${s} ${fmt(b)}.` };
+    }
+    if (l === 2) {
+      if (Math.random() < 0.5) {
+        const x = nz(-9, 9), y = nz(-9, 9), qd = x > 0 ? (y > 0 ? 'I' : 'IV') : y > 0 ? 'II' : 'III';
+        return { q: `The magic mirror is at point <b>(${fmt(x)}, ${fmt(y)})</b>. Which quadrant is it in?`, a: choiceFixed(['Quadrant I', 'Quadrant II', 'Quadrant III', 'Quadrant IV'], 'Quadrant ' + qd), hint: `I is (+, +), II is (−, +), III is (−, −), IV is (+, −).`, explain: `x is ${x > 0 ? 'positive' : 'negative'} and y is ${y > 0 ? 'positive' : 'negative'}, so it's Quadrant ${qd}.` };
+      }
+      const x = nz(-9, 9), y1 = R(1, 12), y2 = -R(1, 12);
+      return { q: `How far apart are the points <b>(${fmt(x)}, ${y1})</b> and <b>(${fmt(x)}, ${fmt(y2)})</b>?`, a: num(y1 - y2), hint: `Same x, so count vertically: from ${fmt(y2)} up to 0, then up to ${y1}.`, explain: `${-y2} + ${y1} = ${y1 - y2} units.` };
+    }
+    if (Math.random() < 0.5) {
+      const set = new Set(); while (set.size < 4) set.add(R(-24, 12) / 4);
+      const vals = [...set], most = Math.random() < 0.5, t = most ? Math.max(...vals) : Math.min(...vals);
+      const correct = fmt(t);
+      return { q: `Which number is the <b>${most ? 'greatest' : 'least'}</b>?`, a: choice(correct, vals.filter((v) => v !== t).map(fmt)), hint: `Picture a number line. Negative numbers farther from 0 are smaller.`, explain: `In order: ${vals.slice().sort((a, b) => a - b).map(fmt).join(' < ')}.` };
+    }
+    const sub = R(20, 300), bird = R(10, 150);
+    return { q: `A submarine is at <b>${MINUS}${sub} m</b> (below sea level). A royal falcon flies at <b>${bird} m</b>. How far apart are they vertically?`, a: num(sub + bird), hint: `Distance = |${MINUS}${sub}| + ${bird}.`, explain: `${sub} + ${bird} = ${sub + bird} m.` };
+  };
+
+  G.g6_geo = (l) => {
+    if (l === 1) {
+      const b = R(3, 20), h = R(2, 15);
+      if (Math.random() < 0.5) return { q: `A parallelogram-shaped castle window has a base of <b>${b} in</b> and a height of <b>${h} in</b>. What is its area?`, a: num(b * h), hint: `Area of a parallelogram = base × height.`, explain: `${b} × ${h} = ${b * h} sq in.` };
+      return { q: `A triangular banner has a base of <b>${b} ft</b> and a height of <b>${h} ft</b>. What is its area?`, a: num((b * h) / 2), hint: `Area of a triangle = ${fr(1, 2)} × base × height.`, explain: `${fr(1, 2)} × ${b} × ${h} = ${fmt((b * h) / 2)} sq ft.` };
+    }
+    if (l === 2) {
+      if (Math.random() < 0.5) { const b1 = R(4, 16), b2 = R(4, 16), h = R(2, 12); return { q: `A trapezoid-shaped garden has parallel sides of <b>${b1} m</b> and <b>${b2} m</b>, and a height of <b>${h} m</b>. What is its area?`, a: num(((b1 + b2) * h) / 2), hint: `Area of a trapezoid = ${fr(1, 2)} × (base₁ + base₂) × height.`, explain: `${fr(1, 2)} × ${b1 + b2} × ${h} = ${fmt(((b1 + b2) * h) / 2)} sq m.` }; }
+      const L = R(2, 9), W = R(2, 9), H = R(1, 6) + 0.5;
+      return { q: `A royal jewel box is <b>${L} cm</b> long, <b>${W} cm</b> wide, and <b>${H} cm</b> tall. What is its volume?`, a: num(L * W * H), hint: `Volume = length × width × height. ${H} is ${Math.floor(H)} and a half.`, explain: `${L} × ${W} × ${H} = ${fmt(L * W * H)} cubic cm.` };
+    }
+    if (Math.random() < 0.5) { const L = R(2, 10), W = R(2, 8), H = R(2, 8), sa = 2 * (L * W + L * H + W * H); return { q: `A gift box for the princess is <b>${L} in</b> × <b>${W} in</b> × <b>${H} in</b>. How much wrapping paper covers the whole outside (its <b>surface area</b>)?`, a: num(sa), hint: `A box has 6 faces in 3 matching pairs: ${L}×${W}, ${L}×${H}, ${W}×${H}.`, explain: `2 × (${L * W} + ${L * H} + ${W * H}) = ${sa} sq in.` }; }
+    const W = 2 * R(2, 8), H = R(3, 12), t = R(2, 10);
+    return { q: `A castle wall is a rectangle <b>${W} ft</b> wide and <b>${H} ft</b> tall with a triangle on top that is <b>${t} ft</b> tall (same ${W} ft base). What is the total area?`, a: num(W * H + (W * t) / 2), hint: `Add the rectangle's area and the triangle's area.`, explain: `${W} × ${H} = ${W * H}; ${fr(1, 2)} × ${W} × ${t} = ${(W * t) / 2}; total ${W * H + (W * t) / 2} sq ft.` };
+  };
+
+  // ======================= BONUS WORLDS (grade-aware) =======================
+  // These take (level, grade) so they fit every player's grade.
+  const SING = { feet: 'foot', yards: 'yard', hours: 'hour', minutes: 'minute', pounds: 'pound', gallons: 'gallon', kilograms: 'kilogram', meters: 'meter', kilometers: 'kilometer', liters: 'liter', days: 'day', weeks: 'week' };
+  const CONV = [['feet', 'inches', 12], ['yards', 'feet', 3], ['hours', 'minutes', 60], ['minutes', 'seconds', 60], ['pounds', 'ounces', 16], ['gallons', 'quarts', 4], ['kilograms', 'grams', 1000], ['meters', 'centimeters', 100], ['kilometers', 'meters', 1000], ['liters', 'milliliters', 1000], ['days', 'hours', 24], ['weeks', 'days', 7]];
+  const METRIC = CONV.filter((c) => c[2] === 100 || c[2] === 1000);
+
+  // --- Mermaid Lagoon: measurement ---
+  G.b_convert = (l, g) => {
+    const [bigU, small, f] = pick(CONV);
+    if (g <= 5) {
+      if (l === 1) { const n = R(2, 12); return { q: `Marina the Mermaid asks: <b>${n} ${bigU}</b> = how many <b>${small}</b>?`, a: num(n * f), hint: `1 ${SING[bigU]} = ${f} ${small}. Multiply by ${f}.`, explain: `${n} × ${f} = ${fmt(n * f)} ${small}.` }; }
+      if (l === 2) { const n = R(2, 9), r = R(1, Math.min(f - 1, 99)); return { q: `<b>${n} ${bigU} ${r} ${small}</b> = how many <b>${small}</b> in all?`, a: num(n * f + r), hint: `Change ${n} ${bigU} to ${small} first (× ${f}), then add ${r}.`, explain: `${n} × ${f} = ${fmt(n * f)}, plus ${r} = ${fmt(n * f + r)} ${small}.` }; }
+      if (g === 4) { const n = R(2, 15); return { q: `<b>${fmt(n * f)} ${small}</b> = how many <b>${bigU}</b>?`, a: num(n), hint: `Going from small units to big units: divide by ${f}.`, explain: `${fmt(n * f)} ÷ ${f} = ${n} ${bigU}.` }; }
+      const [mb, ms, mf] = pick(METRIC), X = R(11, 99);
+      return { q: `<b>${d1(X / 10)} ${mb}</b> = how many <b>${ms}</b>?`, a: num((X * mf) / 10), hint: `1 ${SING[mb]} = ${fmt(mf)} ${ms}. Multiply ${d1(X / 10)} × ${fmt(mf)}.`, explain: `${d1(X / 10)} × ${fmt(mf)} = ${fmt((X * mf) / 10)} ${ms}.` };
+    }
+    if (l === 1) { const [b2, s2, f2] = pick(CONV.filter((c) => c[2] % 2 === 0)), k = R(3, 21), v = (k * f2) / 2; return { q: `<b>${fmt(v)} ${s2}</b> = how many <b>${b2}</b>?`, a: num(k / 2), hint: `Small → big: divide by ${f2}. The answer might be a decimal!`, explain: `${fmt(v)} ÷ ${f2} = ${fmt(k / 2)} ${b2}.` }; }
+    if (l === 2) {
+      const [from, to, f2, who] = pick([['second', 'minute', 60, 'A dolphin'], ['minute', 'hour', 60, 'A sea turtle'], ['hour', 'day', 24, 'A whale']]), r = R(2, 15);
+      return { q: `${who} swims <b>${r} meters per ${from}</b>. How many meters is that per <b>${to}</b>?`, a: num(r * f2), hint: `There are ${f2} ${from}s in a ${to}.`, explain: `${r} × ${f2} = ${fmt(r * f2)} meters per ${to}.` };
+    }
+    const s = pick([5, 10, 20, 25, 50]), d = R(2, 15) + pick([0, 0.5]);
+    return { q: `On Marina's treasure map, <b>1 cm = ${s} km</b>. Two islands are <b>${d} cm</b> apart on the map. How far apart are they really, in km?`, a: num(d * s), hint: `Each cm stands for ${s} km. Multiply.`, explain: `${d} × ${s} = ${fmt(d * s)} km.` };
+  };
+
+  const clock = (mins) => { mins = ((mins % 1440) + 1440) % 1440; let h = Math.floor(mins / 60); const m = mins % 60, ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}:${String(m).padStart(2, '0')} ${ap}`; };
+  const durText = (mins) => { const h = Math.floor(mins / 60), m = mins % 60; return [h ? `${h} hour${h > 1 ? 's' : ''}` : '', m ? `${m} minutes` : ''].filter(Boolean).join(' '); };
+  G.b_time = (l, g) => {
+    if (g <= 5) {
+      const start = l === 1 ? 15 * R(28, 64) : 5 * R(84, 192);
+      const dur = l === 1 ? 60 * R(1, 4) + pick([0, 15, 30]) : 5 * R(4, 26);
+      const end = start + dur;
+      if (l === 3) return { q: `Mermaid swim practice starts at <b>${clock(start)}</b> and ends at <b>${clock(end)}</b>. How many <b>minutes</b> long is it?`, a: num(dur), hint: `Count up to the next hour first, then add the rest.`, explain: `From ${clock(start)} to ${clock(end)} is ${durText(dur)} = ${dur} minutes.` };
+      return { q: `The mermaid concert starts at <b>${clock(start)}</b> and lasts <b>${durText(dur)}</b>. What time does it end?`, a: choice(clock(end), [clock(end + 60), clock(end - 10), clock(end + 15), clock(end - 60), clock(end + 30)]), hint: `Add the hours first, then the minutes. 60 minutes makes a new hour.`, explain: `${clock(start)} + ${durText(dur)} = ${clock(end)}.` };
+    }
+    if (l === 1) { const r = R(3, 25), t = R(2, 9); return { q: `A mermaid swims at <b>${r} km per hour</b> for <b>${t} hours</b>. How far does she swim?`, a: num(r * t), hint: `distance = rate × time.`, explain: `${r} × ${t} = ${r * t} km.` }; }
+    if (l === 2) { const r = R(3, 25), t = R(2, 12); return { q: `A dolphin needs to swim <b>${r * t} km</b> at <b>${r} km per hour</b>. How many hours will it take?`, a: num(t), hint: `time = distance ÷ rate.`, explain: `${r * t} ÷ ${r} = ${t} hours.` }; }
+    const s = R(2, 12), M = pick([15, 20, 30, 45, 90]), D = (s * M) / 60;
+    return { q: `A sea turtle swims <b>${fmt(D)} km</b> in <b>${M} minutes</b>. What is its speed in <b>km per hour</b>?`, a: num(s), hint: `${M} minutes is ${fr(M, 60)} of an hour. How many ${M}-minute chunks are in 60 minutes?`, explain: `${fmt(D)} ÷ ${fr(M, 60)} = ${fmt(D)} × ${fmt(60 / M)} = ${s} km per hour.` };
+  };
+
+  G.b_deal = (l, g) => {
+    if (g <= 5) {
+      const lbs = Math.random() < 0.5, B = lbs ? 'lb' : 'ft', S = lbs ? 'oz' : 'in', f = lbs ? 16 : 12, thing = lbs ? 'pearl sacks' : 'kelp ribbons';
+      const a = R(1, 6), b = R(1, f - 1), c = R(1, 5), d = R(1, f - 1);
+      if (l === 1) return { q: `A ${lbs ? 'pearl sack weighs' : 'kelp ribbon is'} <b>${a} ${B} ${b} ${S}</b>. How many <b>${S}</b> is that?`, a: num(a * f + b), hint: `1 ${B} = ${f} ${S}.`, explain: `${a} × ${f} + ${b} = ${a * f + b} ${S}.` };
+      const A = a * f + b, C = c * f + d;
+      if (l === 2) return { q: `Two ${thing}: <b>${a} ${B} ${b} ${S}</b> and <b>${c} ${B} ${d} ${S}</b>. What is the total in <b>${S}</b>?`, a: num(A + C), hint: `Change each one to ${S} (1 ${B} = ${f} ${S}), then add.`, explain: `${A} + ${C} = ${A + C} ${S}.` };
+      const hi = Math.max(A, C), lo = Math.min(A, C) === hi ? hi - 1 : Math.min(A, C);
+      const show = (v) => `${Math.floor(v / f)} ${B} ${v % f} ${S}`;
+      return { q: `One of the ${thing} is <b>${show(hi)}</b> and the other is <b>${show(lo)}</b>. How many <b>${S}</b> bigger is the first one?`, a: num(hi - lo), hint: `Change both to ${S}, then subtract.`, explain: `${hi} − ${lo} = ${hi - lo} ${S}.` };
+    }
+    let pA, pB; do { pA = 5 * R(10, 60); pB = 5 * R(10, 60); } while (pA === pB);
+    const nA = R(2, 8); let nB; do { nB = R(2, 8); } while (nB === nA);
+    const shops = `<b>Shop A:</b> ${nA} shells for ${money((nA * pA) / 100)}. <b>Shop B:</b> ${nB} shells for ${money((nB * pB) / 100)}.`;
+    if (l === 1) return { q: `At Pearl Market, ${shops} What is the price of <b>one shell at Shop A</b>?`, a: cash(pA / 100), hint: `Unit price = total cost ÷ number of shells.`, explain: `${money((nA * pA) / 100)} ÷ ${nA} = ${money(pA / 100)}.` };
+    if (l === 2) return { q: `At Pearl Market, ${shops} Which is the better deal?`, a: choiceFixed(['Shop A', 'Shop B'], pA < pB ? 'Shop A' : 'Shop B'), hint: `Find the price of ONE shell at each shop.`, explain: `A: ${money(pA / 100)} each. B: ${money(pB / 100)} each. ${pA < pB ? 'A' : 'B'} is cheaper.` };
+    const k = R(6, 20);
+    return { q: `At Pearl Market, ${shops} How much do you save on <b>${k} shells</b> by buying at the cheaper shop?`, a: cash((k * Math.abs(pA - pB)) / 100), hint: `Find each unit price, subtract, then multiply by ${k}.`, explain: `Difference per shell: ${money(Math.abs(pA - pB) / 100)}. × ${k} = ${money((k * Math.abs(pA - pB)) / 100)}.` };
+  };
+
+  // --- Puppy Park: data ---
+  const listStr = (v) => v.length === 2 ? v.join(' and ') : v.slice(0, -1).join(', ') + ', and ' + v[v.length - 1];
+  function meanSet(n, m, spread) {
+    for (;;) {
+      const v = []; let s = 0;
+      for (let i = 0; i < n - 1; i++) { const x = R(Math.max(1, m - spread), m + spread); v.push(x); s += x; }
+      const last = n * m - s;
+      if (last >= 1 && last <= m + spread * 2 && last >= m - spread * 2) { v.push(last); return v; }
+    }
+  }
+  G.b_mean = (l, g) => {
+    const n = lv(l, 3, 4, 5) + (g >= 7 ? 1 : 0), m = R(lv(l, 4, 8, 12), lv(l, 12, 25, 40)) + (g >= 6 ? 10 : 0), v = meanSet(n, m, Math.max(3, Math.floor(m / 3)));
+    const ctx = pick([['puppies', 'weigh', 'pounds'], ['puppies', 'learned', 'tricks'], ['puppies', 'ate', 'treats']]);
+    if (l === 3 && g >= 6) {
+      const known = v.slice(0, -1);
+      return { q: `The <b>mean</b> of ${n} puppies' scores at the dog show is <b>${m}</b>. ${n - 1} of the scores are ${listStr(known)}. What is the last puppy's score?`, a: num(v[n - 1]), hint: `The total must be ${n} × ${m} = ${n * m}. Subtract the scores you know.`, explain: `${n * m} − ${known.reduce((a, b) => a + b, 0)} = ${v[n - 1]}.` };
+    }
+    return { q: `The ${n} ${ctx[0]} at Puppy Park ${ctx[1]} ${listStr(v)} ${ctx[2]}. What is the <b>mean</b> (average)?`, a: num(m), hint: `Add them all up, then divide by ${n}.`, explain: `Sum = ${n * m}. ${n * m} ÷ ${n} = ${m}.` };
+  };
+
+  G.b_median = (l, g) => {
+    const top = lv(l, 20, 50, 100) + (g >= 6 ? 50 : 0);
+    if (l === 2) {
+      if (Math.random() < 0.5) {
+        const set = new Set(); while (set.size < 5) set.add(R(1, top));
+        const v = [...set], dup = pick(v), all = shuffle([...v, dup]);
+        return { q: `Puppies fetched these numbers of balls: ${listStr(all)}. What is the <b>mode</b>?`, a: num(dup), hint: `The mode is the number that appears most often.`, explain: `${dup} appears twice.` };
+      }
+      const v = Array.from({ length: 6 }, () => R(1, top));
+      return { q: `Puppy tail-wags per minute: ${listStr(v)}. What is the <b>range</b>?`, a: num(Math.max(...v) - Math.min(...v)), hint: `Range = biggest − smallest.`, explain: `${Math.max(...v)} − ${Math.min(...v)} = ${Math.max(...v) - Math.min(...v)}.` };
+    }
+    const n = l === 1 ? pick([5, 7]) : pick([4, 6]), v = Array.from({ length: n }, () => R(1, top)), s = v.slice().sort((a, b) => a - b);
+    const med = n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2;
+    return { q: `Puppies' jump heights (in inches): ${listStr(v)}. What is the <b>median</b>?`, a: num(med), hint: `Put them in order first.${n % 2 ? '' : ' With an even count, the median is halfway between the two middle numbers.'}`, explain: `In order: ${s.join(', ')}. The median is ${fmt(med)}.` };
+  };
+
+  G.b_chance = (l, g) => {
+    if (g <= 5 && l === 1) {
+      const r = R(1, 9), b = Math.random() < 0.2 ? r : R(1, 9);
+      return { q: `A toy box has <b>${r} red</b> balls and <b>${b} blue</b> balls. A puppy grabs one without looking. Which color is <b>more likely</b>?`, a: choiceFixed(['Red', 'Blue', 'Equally likely'], r > b ? 'Red' : b > r ? 'Blue' : 'Equally likely'), hint: `Whichever color has more balls is more likely.`, explain: `${r} red vs ${b} blue.` };
+    }
+    const n = R(4, 10), k = R(1, n - 1);
+    if (l === 1 || (l === 2 && g <= 5)) return { q: `A spinner has <b>${n}</b> equal parts, and <b>${k}</b> ${k === 1 ? "has" : "have"} a 🦴 bone. What is the probability of landing on a bone? (as a fraction)`, a: frac(k, n), hint: `Bone parts ÷ all parts.`, explain: `${fracHTML(k, n)}.` };
+    if (l === 2 || g <= 5) { const T = n * R(2, 10); return { q: `A spinner has <b>${n}</b> equal parts, and <b>${k}</b> ${k === 1 ? "has" : "have"} a bone. If you spin it <b>${T}</b> times, about how many times should you land on a bone?`, a: num((T * k) / n), hint: `Expected = probability × number of spins = ${fr(k, n)} × ${T}.`, explain: `${fr(k, n)} × ${T} = ${(T * k) / n}.` }; }
+    if (Math.random() < 0.5) return { q: `A spinner has <b>${n}</b> equal parts, and <b>${k}</b> ${k === 1 ? "has" : "have"} a bone. What is the probability of <b>NOT</b> landing on a bone? (as a fraction)`, a: frac(n - k, n), hint: `P(not) = 1 − P(bone).`, explain: `1 − ${fr(k, n)} = ${fracHTML(n - k, n)}.` };
+    const m = R(3, 8), j = R(1, m - 1);
+    return { q: `Spin a ${n}-part spinner (${k} parts have a bone) <b>and</b> pick from a bag of ${m} balls (${j} are green). What is the probability of a bone AND a green ball? (as a fraction)`, a: frac(k * j, n * m), hint: `Independent events: multiply the probabilities.`, explain: `${fr(k, n)} × ${fr(j, m)} = ${fracHTML(k * j, n * m)}.` };
+  };
+
+  // --- Space Station: patterns & algebra ---
+  G.b_pattern = (l, g) => {
+    if (g <= 5) {
+      const a = R(1, 30), d = l === 1 ? R(2, 12) : R(6, 25), down = l === 2 && Math.random() < 0.5;
+      const step = down ? -d : d, start = down ? a + 6 * d : a, terms = [0, 1, 2, 3].map((i) => start + i * step);
+      if (l === 3) return { q: `Comet pattern: ${terms.join(', ')}, … What is the <b>10th</b> number?`, a: num(start + 9 * step), hint: `Each step adds ${d}. From the 1st to the 10th number is 9 steps.`, explain: `${start} + 9 × ${d} = ${start + 9 * step}.` };
+      return { q: `What comes next in the comet pattern?${big(terms.join(', ') + ', ?')}`, a: num(start + 4 * step), hint: `What do you ${down ? 'subtract' : 'add'} each time?`, explain: `The rule is ${down ? '−' : '+'}${d}: ${terms[3]} ${down ? '−' : '+'} ${d} = ${start + 4 * step}.` };
+    }
+    if (l === 1) { const a = R(-20, 20), d = nz(-9, 9), t = [0, 1, 2, 3].map((i) => a + i * d); return { q: `What comes next?${big(t.map(fmt).join(', ') + ', ?')}`, a: num(a + 4 * d), hint: `Find the difference between neighbors.`, explain: `The rule is ${d > 0 ? '+' : '−'}${Math.abs(d)}, so next is ${fmt(a + 4 * d)}.` }; }
+    if (l === 2) { const a = R(1, 5), r = pick([2, 3, -2]), t = [0, 1, 2, 3].map((i) => a * r ** i); return { q: `What comes next?${big(t.map(fmt).join(', ') + ', ?')}`, a: num(a * r ** 4), hint: `This one multiplies each time. By what?`, explain: `× ${fmt(r)} each time: ${fmt(t[3])} × ${sp(r)} = ${fmt(a * r ** 4)}.` }; }
+    if (g >= 8 && Math.random() < 0.5) { const c = R(-3, 6), t = [1, 2, 3, 4].map((n) => n * n + c); return { q: `What comes next?${big(t.map(fmt).join(', ') + ', ?')}`, a: num(25 + c), hint: `Look at the differences between terms. They grow by 2 each time!`, explain: `These are n² ${c >= 0 ? '+' : '−'} ${Math.abs(c)}: 5² ${c >= 0 ? '+' : '−'} ${Math.abs(c)} = ${25 + c}.` }; }
+    const d = R(2, 9), c = R(-6, 9), t = [1, 2, 3, 4].map((n) => d * n + c);
+    const rule = (k, cc) => `${term(k, '<i>n</i>', true)}${constTerm(cc)}`;
+    return { q: `Which rule gives the pattern <b>${t.map(fmt).join(', ')}, …</b> (where <i>n</i> is the position 1, 2, 3, …)?`, a: choice(rule(d, c), [rule(d, c + d), rule(c === 0 ? d + 1 : Math.abs(c), d), `<i>n</i> + ${d}`, rule(d + 1, c - 1)]), hint: `The jump between terms is the number in front of n. Then check n = 1.`, explain: `Jump = ${d}, and ${d}(1)${constTerm(c)} = ${t[0]}, so the rule is ${rule(d, c)}.` };
+  };
+
+  const ioTable = (xs, ys) => `<table class="io"><tr><th>In</th>${xs.map((x) => `<td>${typeof x === 'number' ? fmt(x) : x}</td>`).join('')}</tr><tr><th>Out</th>${ys.map((y) => `<td>${typeof y === 'number' ? fmt(y) : y}</td>`).join('')}</tr></table>`;
+  G.b_table = (l, g) => {
+    if (g <= 5) {
+      const k = R(2, 9), c = l === 1 ? 0 : R(1, 9), add = l === 1 && Math.random() < 0.4, f = (x) => (add ? x + k * 3 : k * x + c);
+      const xs = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).slice(0, 4).sort((a, b) => a - b);
+      const rule = add ? `add ${k * 3}` : c ? `× ${k}, then + ${c}` : `× ${k}`;
+      if (l === 3) { const ys = xs.map(f); return { q: `Robot Rule machine! Find the missing <b>input</b>:${ioTable([xs[0], xs[1], xs[2], '?'], ys)}`, a: num(xs[3]), hint: `First discover the rule from the full columns. Then work backwards.`, explain: `The rule is ${rule}. Working back from ${ys[3]} gives ${xs[3]}.` }; }
+      return { q: `Robot Rule machine! What is the missing <b>output</b>?${ioTable(xs, [f(xs[0]), f(xs[1]), f(xs[2]), '?'])}`, a: num(f(xs[3])), hint: `Look at how each In becomes its Out. Is it adding? Multiplying?`, explain: `The rule is ${rule}, so ${xs[3]} → ${f(xs[3])}.` };
+    }
+    const k = nz(-6, 6), c = R(-9, 9), f = (x) => k * x + c, off = R(0, 1), xs = [-2, -1, 0, 1, 2].slice(off, off + 4);
+    if (l === 1) return { q: `What is the missing output?${ioTable(xs, [f(xs[0]), f(xs[1]), f(xs[2]), '?'])}`, a: num(f(xs[3])), hint: `How much does Out change each time In goes up by 1?`, explain: `y = ${term(k, 'x', true)}${constTerm(c)}, so ${fmt(xs[3])} → ${fmt(f(xs[3]))}.` };
+    if (l === 2) { const X = R(10, 25); return { q: `This robot follows a linear rule. What is the output when the input is <b>${X}</b>?${ioTable(xs, xs.map(f))}`, a: num(f(X)), hint: `Find the rule first: the change per step is the slope, and the output at In = 0 is the starting value.`, explain: `y = ${term(k, 'x', true)}${constTerm(c)}, so ${k} × ${X}${constTerm(c)} = ${fmt(f(X))}.` }; }
+    const eq = (kk, cc) => `<i>y</i> = ${term(kk, '<i>x</i>', true)}${constTerm(cc)}`;
+    return { q: `Which equation matches this table?${ioTable(xs, xs.map(f))}`, a: choice(eq(k, c), [eq(-k, c), eq(k, c + k), eq(c === 0 ? k + 1 : c, k), eq(k + 1, c)]), hint: `The change in Out per 1 step of In is the slope. The output at In = 0 is the y-intercept.`, explain: `Slope ${fmt(k)}, intercept ${fmt(c)}: ${eq(k, c)}.` };
+  };
+
+  G.b_expr = (l, g) => {
+    if (g <= 5) {
+      if (l === 1) { const a = R(2, 12), b = R(2, 12); return Math.random() < 0.5 ? { q: `Find the missing number:${big(`${a} × ? = ${a * b}`)}`, a: num(b), hint: `Think: ${a * b} ÷ ${a}.`, explain: `${a} × ${b} = ${a * b}.` } : { q: `Find the missing number:${big(`? ÷ ${a} = ${b}`)}`, a: num(a * b), hint: `Undo division with multiplication: ${b} × ${a}.`, explain: `${a * b} ÷ ${a} = ${b}.` }; }
+      if (l === 2) { const t = R(300, 1500), x = R(100, t - 50); return Math.random() < 0.5 ? { q: `Find the missing number:${big(`${fmt(t)} ${MINUS} ? = ${fmt(t - x)}`)}`, a: num(x), hint: `What do you take from ${fmt(t)} to get ${fmt(t - x)}? Subtract them.`, explain: `${fmt(t)} − ${fmt(t - x)} = ${fmt(x)}.` } : { q: `Find the missing number:${big(`? + ${fmt(x)} = ${fmt(t)}`)}`, a: num(t - x), hint: `Undo the addition: ${fmt(t)} − ${fmt(x)}.`, explain: `${fmt(t)} − ${fmt(x)} = ${fmt(t - x)}.` }; }
+      const b = R(2, 12), a = R(2, 9), c = R(1, 20);
+      return { q: `Find the missing number:${big(`(? × ${a}) + ${c} = ${a * b + c}`)}`, a: num(b), hint: `Undo the + ${c} first, then the × ${a}.`, explain: `${a * b + c} − ${c} = ${a * b}; ${a * b} ÷ ${a} = ${b}.` };
+    }
+    const X = '<i>x</i>';
+    if (l === 1) { const a = R(2, 9), b = nz(-6, 6), x = R(-5, 8), y = R(-5, 8); return { q: `Evaluate when <i>a</i> = ${fmt(x)} and <i>b</i> = ${fmt(y)}:${big(`${a}<i>a</i>${term(b, '<i>b</i>')}`)}`, a: num(a * x + b * y), hint: `Substitute: ${a} × ${sp(x)} + ${sp(b)} × ${sp(y)}.`, explain: `${a * x} + ${sp(b * y)} = ${fmt(a * x + b * y)}.` }; }
+    const ex = (k, c) => `${term(k, X, true)}${constTerm(c)}`;
+    if (l === 2) {
+      const p = R(2, 9), r = nz(-6, 6), q = R(1, 12), s = R(1, 12);
+      if (p + r === 0) return G.b_expr(l, g);
+      return { q: `Simplify:${big(`${p}${X} + ${q}${term(r, X)} ${MINUS} ${s}`)}`, a: choice(ex(p + r, q - s), [ex(p + r, q + s), ex(p - r, q - s), ex(p + r + q - s, 0), ex(p * r, q - s)]), hint: `Combine the x terms (${p} and ${fmt(r)}) and the plain numbers (${q} and −${s}) separately.`, explain: `${p} + ${sp(r)} = ${fmt(p + r)} and ${q} − ${s} = ${fmt(q - s)}: ${ex(p + r, q - s)}.` };
+    }
+    const a = nz(-6, 7), b = R(2, 7), c = nz(-9, 9);
+    if (Math.abs(a) === 1) return G.b_expr(l, g);
+    return { q: `Expand:${big(`${fmt(a)}(${b}${X}${constTerm(c)})`)}`, a: choice(ex(a * b, a * c), [ex(a * b, c), ex(a + b, a * c), ex(b, a * c), ex(a * b, -a * c)]), hint: `Multiply ${fmt(a)} by BOTH terms inside the parentheses.`, explain: `${fmt(a)} × ${b}x = ${fmt(a * b)}x and ${fmt(a)} × ${sp(c)} = ${fmt(a * c)}.` };
+  };
+
+  // --- Dino Valley: speed & number sense ---
+  G.b_facts = (l, g) => {
+    if (g <= 5) {
+      if (l === 3 && Math.random() < 0.5) { const a = R(2, 12), b = R(2, 12); return { q: `Quick!${big(`${a * b} ÷ ${a}`)}`, a: num(b), hint: `${a} × ? = ${a * b}`, explain: `${a} × ${b} = ${a * b}.` }; }
+      const top = lv(l, 9, 12, 15), a = R(2, top), b = R(2, l === 3 ? 9 : top);
+      return { q: `Quick!${big(`${a} × ${b}`)}`, a: num(a * b), hint: `Break it up: ${a} × ${b} = ${a} × ${b - 1} + ${a}.`, explain: `${a} × ${b} = ${a * b}.` };
+    }
+    if (l === 1) { const a = R(3, 12), b = R(3, 12); return { q: `Quick!${big(`${a} × ${b}`)}`, a: num(a * b), hint: `Use a fact you know nearby.`, explain: `${a * b}.` }; }
+    if (l === 2) { if (Math.random() < 0.5) { const n = R(11, 20); return { q: `Quick!${big(`${n}<sup>2</sup>`)}`, a: num(n * n), hint: `${n}² = ${n} × ${n}.`, explain: `${n} × ${n} = ${n * n}.` }; } const a = nz(-12, 12), b = nz(-12, 12); return { q: `Quick!${big(`${sp(a)} × ${sp(b)}`)}`, a: num(a * b), hint: `Same signs → positive; different → negative.`, explain: `${fmt(a * b)}.` }; }
+    const f = R(1, 3);
+    if (f === 1) { const a = nz(-12, 12), b = nz(-9, 9); return { q: `Quick!${big(`${sp(a * b)} ÷ ${sp(b)}`)}`, a: num(a), hint: `Signs: same → +, different → −.`, explain: `${fmt(a)}.` }; }
+    if (f === 2) { const n = R(2, 6); return { q: `Quick!${big(`${n}<sup>3</sup>`)}`, a: num(n ** 3), hint: `${n} × ${n} × ${n}.`, explain: `${n ** 3}.` }; }
+    const p = pick([10, 20, 25, 50]), n = (100 / gcd(p, 100)) * R(2, 20);
+    return { q: `Quick!${big(`${p}% of ${n}`)}`, a: num((p * n) / 100), hint: `${p}% = ${fracHTML(p, 100)}.`, explain: `${(p * n) / 100}.` };
+  };
+
+  const BENCH = [[1, 2], [1, 4], [3, 4], [1, 5], [2, 5], [3, 5], [4, 5], [1, 10], [3, 10], [7, 10], [9, 10], [1, 20], [1, 8], [3, 8]];
+  G.b_equiv = (l, g) => {
+    if (g <= 5) {
+      if (l === 1) { const n = R(1, 9); return { q: `Match the fossil! Write as a decimal:${big(fr(n, 10))}`, a: num(n / 10), hint: `Tenths: one digit after the point.`, explain: `${d1(n / 10)}.` }; }
+      if (l === 2) { const n = R(1, 99); return Math.random() < 0.5 ? { q: `Write as a decimal:${big(fr(n, 100))}`, a: num(n / 100), hint: `Hundredths: two digits after the point.`, explain: `${d2(n / 100)}.` } : { q: `Fill in the missing numerator:${big(`${d2(n / 100)} = ${fr('?', 100)}`)}`, a: num(n), hint: `The digits after the point tell you how many hundredths.`, explain: `${d2(n / 100)} = ${fr(n, 100)}.` }; }
+      const [n, d] = pick(BENCH.filter((x) => x[1] <= 5 || x[1] === 10));
+      return { q: `Write as a decimal:${big(fr(n, d))}`, a: num(n / d), hint: `Make an equivalent fraction with denominator 10 or 100.`, explain: `${fr(n, d)} = ${fr((n * 100) / d, 100)} = ${fmt(n / d)}.` };
+    }
+    if (l === 1) { const [n, d] = pick(BENCH.filter((x) => x[1] !== 8)); return { q: `Write as a percent:${big(fr(n, d))}`, a: num((100 * n) / d), hint: `Percent means "out of 100". Make the denominator 100.`, explain: `${fr(n, d)} = ${fr((100 * n) / d, 100)} = ${(100 * n) / d}%.` }; }
+    if (l === 2) { const v = pick([R(1, 99), R(101, 250), R(1, 9)]); return { q: `Write as a percent:${big(fmt(v / 100))}`, a: num(v), hint: `Multiply by 100 (move the decimal point 2 places right).`, explain: `${fmt(v / 100)} × 100 = ${v}%.` }; }
+    if (Math.random() < 0.5) { let p; do { p = 5 * R(1, 19); } while (p === 50); return { q: `Write as a fraction in <b>simplest form</b>:${big(p + '%')}`, a: frac(p, 100, true), hint: `${p}% = ${fr(p, 100)}. Now simplify.`, explain: `${fr(p, 100)} = ${fracHTML(p, 100)}.` }; }
+    const n = pick([1, 3, 5, 7]); return { q: `Write as a decimal:${big(fr(n, 8))}`, a: num(n / 8), hint: `${fr(1, 8)} = 0.125. Multiply by ${n}.`, explain: `${n} × 0.125 = ${fmt(n / 8)}.` };
+  };
+
+  const roundLead = (n) => { const p = 10 ** (String(Math.round(Math.abs(n))).length - 1); return Math.round(n / p) * p; };
+  const estChoice = (est) => choice(fmt(est), [fmt(est * 10), fmt(est / 10), fmt(est + roundLead(est) / (est >= 100 ? 5 : 2)), fmt(Math.max(1, est - roundLead(est) / 2))]);
+  G.b_estimate = (l, g) => {
+    if (l === 1) { const a = R(110, 989), b = R(110, 989), est = Math.round(a / 100) * 100 + Math.round(b / 100) * 100; return { q: `T-Rex needs a fast estimate! Which is closest to:${big(`${a} + ${b}`)}`, a: estChoice(est), hint: `Round each number to the nearest hundred, then add.`, explain: `${Math.round(a / 100) * 100} + ${Math.round(b / 100) * 100} = ${fmt(est)}.` }; }
+    if (l === 2 || g <= 5) {
+      const a = l === 2 ? R(12, 98) : R(110, 989), b = l === 2 ? R(3, 9) : R(12, 98);
+      const ra = roundLead(a), rb = roundLead(b), est = ra * rb;
+      return { q: `Best estimate:${big(`${a} × ${b}`)}`, a: estChoice(est), hint: `Round to ${fmt(ra)} × ${fmt(rb)}.`, explain: `${fmt(ra)} × ${fmt(rb)} = ${fmt(est)}.` };
+    }
+    if (Math.random() < 0.5) { const a = R(21, 99) / 10, b = R(110, 990) / 10, est = Math.round(a) * roundLead(b); return { q: `Best estimate:${big(`${a} × ${b}`)}`, a: estChoice(est), hint: `Round to ${Math.round(a)} × ${fmt(roundLead(b))}.`, explain: `${Math.round(a)} × ${fmt(roundLead(b))} = ${fmt(est)}.` }; }
+    const bp = pick([10, 20, 25, 50, 75]), p = bp + pick([-2, -1, 1, 2]), base = (100 / gcd(bp, 100)) * R(2, 15), n = base + pick([-1, 1, 2]), est = (bp * base) / 100;
+    return { q: `Best estimate:${big(`${p}% of ${n}`)}`, a: estChoice(est), hint: `${p}% is close to ${bp}%, and ${n} is close to ${base}.`, explain: `${bp}% of ${base} = ${fmt(est)}.` };
+  };
+
   // ---------- public API ----------
-  function generate(topic, level, seen) {
+  function generate(topic, level, seen, grade) {
     const g = G[topic];
     if (!g) throw new Error('Unknown topic ' + topic);
     let q;
-    for (let i = 0; i < 12; i++) { q = g(level); if (!seen || !seen.has(q.q)) break; }
+    for (let i = 0; i < 12; i++) { q = g(level, grade || 6); if (!seen || !seen.has(q.q)) break; }
     if (seen) seen.add(q.q);
     q.topic = topic;
     q.level = level;

@@ -19,6 +19,8 @@
         { topic: 'g4_div', name: 'Seahorse Sharing', skill: 'Division with remainders', story: 'The seahorses want to share their sea-snacks fairly. Divide them up — what\'s left over?', treasure: '🦪', treasureName: 'Pearl Oyster' },
         { topic: 'g4_frac', name: 'Jellyfish Fractions', skill: 'Equivalent & comparing fractions', story: 'The glowing jellyfish split their light into fractions. Match and compare them!', treasure: '🐡', treasureName: 'Puffer Pal' },
         { topic: 'g4_word', name: 'Sunken Ship Treasure', skill: 'Word problems: area, perimeter & multi-step', story: 'A sunken ship is full of puzzles! Solve them to unlock the treasure chest.', treasure: '🔱', treasureName: 'Golden Trident' },
+        { topic: 'g4_dec', name: 'Decimal Bubbles', skill: 'Tenths, hundredths & comparing decimals', story: 'Every bubble holds a decimal. Pop them in the right order!', treasure: '🐋', treasureName: 'Baby Whale Friend' },
+        { topic: 'g4_angle', name: 'Anglerfish Angles', skill: 'Angles, turns & clock angles', story: 'The anglerfish lights up the deep sea, but only if you measure the angles!', treasure: '🦑', treasureName: 'Squid Buddy' },
       ],
     },
     {
@@ -49,6 +51,8 @@
         { topic: 'g6_fdiv', name: 'Glass Slipper Fractions', skill: 'Dividing fractions', story: 'The magic slippers come in fraction sizes. Divide them to find the perfect fit!', treasure: '👠', treasureName: 'Glass Slipper' },
         { topic: 'g6_eq', name: 'Spellbook Equations', skill: 'Equations, exponents, GCF & LCM', story: 'The castle spellbook is full of equations. Solve for x to break the locks!', treasure: '📜', treasureName: 'Magic Scroll' },
         { topic: 'g6_word', name: 'The Royal Ball', skill: 'Word problems: rates, discounts & area', story: 'The Royal Ball is tonight, and everything needs to be planned perfectly!', treasure: '💍', treasureName: 'Royal Ring' },
+        { topic: 'g6_int', name: 'Mirror Hall Integers', skill: 'Negative numbers, absolute value & the coordinate plane', story: 'The Hall of Mirrors flips everything to its opposite. Find your way through!', treasure: '🗝️', treasureName: 'Silver Key' },
+        { topic: 'g6_geo', name: 'Treasury Geometry', skill: 'Area, volume & surface area', story: 'The royal treasury is packed with boxes and banners. Measure them all!', treasure: '💎', treasureName: 'Royal Gem' },
       ],
     },
     {
@@ -79,6 +83,60 @@
         { topic: 'g8_exp', name: 'Exponent Galaxy', skill: 'Exponent rules & scientific notation', story: 'The galaxy is HUGE and atoms are TINY. Scientific notation handles both!', treasure: '🪐', treasureName: 'Ringed Planet' },
         { topic: 'g8_pyth', name: 'Pythagoras Peaks', skill: 'Pythagorean theorem & roots', story: 'Climb the crystal peaks using right triangles and square roots!', treasure: '💠', treasureName: 'Crystal Prism' },
         { topic: 'g8_word', name: 'The Grand Quest', skill: 'Word problems: systems, functions & geometry', story: 'Friends from every realm need your help — unicorns, princesses, ninjas and dragons!', treasure: '🏆', treasureName: 'Champion Trophy' },
+      ],
+    },
+
+    // ---------------- BONUS WORLDS: always open, questions match the player's grade ----------------
+    {
+      id: 'lagoon', bonus: true, name: 'Mermaid Lagoon', emoji: '🧜‍♀️', theme: 'theme-mermaid', deco: ['🐚', '🧜‍♀️', '🌊', '🐬', '⭐', '🐢'],
+      guide: { name: 'Marina the Mermaid', emoji: '🧜‍♀️' },
+      intro: 'Splash! Welcome to my lagoon. Mermaids measure everything: tides, treasure and time. Help me and you\'ll earn ocean treasures!',
+      colors: [], baseTime: 55,
+      cheers: ['Mer-velous!', 'Shell yeah!', 'Fintastic!', 'Making waves!', 'Pearl-fect!'],
+      boss: { name: 'Captain Chomp the Shark', emoji: '🦈', intro: 'CHOMP CHOMP! I\'m swimming off with the pearls unless you can out-measure me!', win: 'Captain Chomp shows off his big smile and gives back every pearl. "Okay, okay, you win!"', lose: 'Captain Chomp zooms off with a splash. Practice and swim back!' },
+      missions: [
+        { topic: 'b_convert', name: 'Shell Conversions', skill: 'Measurement & unit conversions', story: 'The shells are labeled in all different units. Convert them so Marina can sort her collection!', treasure: '🧭', treasureName: 'Sea Compass' },
+        { topic: 'b_time', name: 'Tide Clock', skill: 'Elapsed time (Gr 4–5) · Distance, rate & time (Gr 6–8)', story: 'The tides wait for no one! Keep the lagoon running on time.', treasure: '⏳', treasureName: 'Sand Timer' },
+        { topic: 'b_deal', name: 'Pearl Market', skill: 'Mixed units (Gr 4–5) · Unit prices & best buys (Gr 6–8)', story: 'The underwater market is open! Weigh the pearls and find the best deals.', treasure: '👛', treasureName: 'Pearl Purse' },
+      ],
+    },
+    {
+      id: 'park', bonus: true, name: 'Puppy Park', emoji: '🐶', theme: 'theme-puppy', deco: ['🐶', '🦴', '🎾', '🐾', '🌳', '🐕'],
+      guide: { name: 'Biscuit the Puppy', emoji: '🐶' },
+      intro: 'Woof woof! It\'s the big Puppy Show at the park! We need a math whiz to keep score, find averages and predict who wins!',
+      colors: [], baseTime: 55,
+      cheers: ['Paw-some!', 'Good job, top dog!', 'Fur-tastic!', 'Bark-tacular!', 'You\'re the goodest!'],
+      boss: { name: 'The Sneaky Cat Burglar', emoji: '😼', intro: 'Meow-ha-ha! I stole every squeaky toy in the park. Beat my quiz to get them back!', win: 'The cat purrs, gives back the toys, and joins the puppies for a nap. 🐾', lose: 'The cat slinks away with the toys. Train with the puppies and try again!' },
+      missions: [
+        { topic: 'b_mean', name: 'Puppy Weigh-In', skill: 'Mean (average)', story: 'Time to weigh the puppies and count their treats. What\'s the average?', treasure: '🦴', treasureName: 'Golden Bone' },
+        { topic: 'b_median', name: 'Middle Mutt', skill: 'Median, mode & range', story: 'The judges need the middle score, the most common score and the spread!', treasure: '🎾', treasureName: 'Super Ball' },
+        { topic: 'b_chance', name: 'Fetch Chances', skill: 'Probability & predictions', story: 'Which toy will the puppy grab? Use probability to predict!', treasure: '🥏', treasureName: 'Flying Disc' },
+      ],
+    },
+    {
+      id: 'space', bonus: true, name: 'Space Station', emoji: '🚀', theme: 'theme-space', deco: ['🚀', '🪐', '🌍', '⭐', '🛸', '☄️'],
+      guide: { name: 'Commander Zara', emoji: '👩‍🚀' },
+      intro: 'Commander Zara here! Our space station runs on patterns and rules. Crack the codes to keep us in orbit!',
+      colors: [], baseTime: 55,
+      cheers: ['Blast off!', 'Out of this world!', 'Astro-nomical!', 'Mission control is proud!', 'Rocket science!'],
+      boss: { name: 'The Glitch Invader', emoji: '👾', intro: 'B33P B00P! I scrambled all your computer codes! Fix them before time runs out!', win: 'The Glitch Invader reboots into a friendly helper robot. Systems back online! 🚀', lose: 'The Glitch Invader zips into hyperspace. Recharge and try again!' },
+      missions: [
+        { topic: 'b_pattern', name: 'Comet Patterns', skill: 'Number patterns & sequences', story: 'Comets fly past in patterns. Predict where the next one will be!', treasure: '🌠', treasureName: 'Shooting Star' },
+        { topic: 'b_table', name: 'Robot Rules', skill: 'Input/output tables & functions', story: 'The station robots follow secret rules. Figure them out!', treasure: '🤖', treasureName: 'Robot Pal' },
+        { topic: 'b_expr', name: 'Rocket Equations', skill: 'Missing numbers (Gr 4–5) · Expressions (Gr 6–8)', story: 'The rocket fuel computer has missing numbers. Fill them in for launch!', treasure: '🛰️', treasureName: 'Satellite' },
+      ],
+    },
+    {
+      id: 'dino', bonus: true, name: 'Dino Valley', emoji: '🦖', theme: 'theme-dino', deco: ['🦖', '🦕', '🌋', '🌿', '🥚', '🦴'],
+      guide: { name: 'Rexy the Dino', emoji: '🦕' },
+      intro: 'RAWR! (That means hi!) Dinos are FAST. My missions are speed challenges, so answer before the timer runs out!',
+      colors: [], baseTime: 30,
+      cheers: ['Dino-mite!', 'Roar-some!', 'T-riffic!', 'Jurassic genius!', 'Stomp-tacular!'],
+      boss: { name: 'Mount Kaboom', emoji: '🌋', intro: 'RUMBLE RUMBLE! I\'m about to erupt! Answer fast to cool me down!', win: 'Mount Kaboom lets out a tiny puff of smoke and falls asleep. The dinos are safe! 🦕', lose: 'KABOOM! The volcano erupts and the dinos run for cover. Try again!' },
+      missions: [
+        { topic: 'b_facts', name: 'Dino Dash', skill: 'Speed facts (timed!)', story: 'Race the raptors! Answer each fact before they catch you.', treasure: '🥚', treasureName: 'Dino Egg', timed: 15 },
+        { topic: 'b_equiv', name: 'Fossil Match', skill: 'Fractions, decimals & percents', story: 'Each fossil has a matching partner. Match fractions, decimals and percents!', treasure: '🦴', treasureName: 'T-Rex Fossil' },
+        { topic: 'b_estimate', name: 'T-Rex Estimates', skill: 'Estimation (timed!)', story: 'T-Rex can\'t wait! Pick the best estimate. No time for exact answers!', treasure: '🌋', treasureName: 'Mini Volcano', timed: 20 },
       ],
     },
   ];
