@@ -417,6 +417,7 @@ h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;letter-spaci
       <p>Each box shows big and little letters. Letters she misses come up more often. A letter turns green after about 5 right answers with few misses.</p>
       <div class="legend"><span><i style="background:#eeeaf3"></i>Not seen yet</span><span><i style="background:#fff0c2"></i>Learning</span><span><i style="background:#c9f2dc"></i>Knows it</span></div>
       <div class="lgrid" id="pGrid"></div>
+      <p>Tap any letter above to hear how the game says it.</p>
     </div>
     <div class="psec">
       <h3>How the game works</h3>
@@ -427,6 +428,8 @@ h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;letter-spaci
     <div class="psec">
       <h3>Settings</h3>
       <label class="toggle"><input type="checkbox" id="pVoice"> Spoken voice</label>
+      <p>For clearer letter sounds, download a better iPad voice: Settings → Accessibility → Spoken Content → Voices → English → pick one marked <b>Enhanced</b> or <b>Premium</b> (Ava or Samantha work well). The game uses it automatically next time it opens.</p>
+      <div class="prow"><button class="pbtn plain" id="pTest">Hear A and I</button><span id="pVoiceName" style="color:var(--ink-soft);font-size:15px"></span></div>
       <label class="toggle"><input type="checkbox" id="pUnlock"> Open all lands</label>
       <label class="toggle"><input type="checkbox" id="pFour"> Harder: 4 choices instead of 3</label>
     </div>
@@ -468,7 +471,7 @@ const GAMES=[
   {id:'trace', name:'Rainbow Trace',   icon:'🖍️'},
 ];
 
-const NAMES={a:'ay',b:'bee',c:'see',d:'dee',e:'ee',f:'eff',g:'gee',h:'aitch',i:'eye',j:'jay',k:'kay',l:'ell',m:'em',n:'en',o:'oh',p:'pee',q:'cue',r:'are',s:'ess',t:'tee',u:'you',v:'vee',w:'double you',x:'ex',y:'why',z:'zee'};
+const NAMES={a:'A',b:'bee',c:'see',d:'dee',e:'ee',f:'eff',g:'gee',h:'aitch',i:'eye',j:'jay',k:'kay',l:'ell',m:'em',n:'en',o:'oh',p:'pee',q:'cue',r:'are',s:'ess',t:'tee',u:'you',v:'vee',w:'double you',x:'ex',y:'why',z:'zee'};
 const SOUNDS={a:'ah',b:'buh',c:'kuh',d:'duh',e:'eh',f:'fff',g:'guh',h:'huh',i:'ih',j:'juh',k:'kuh',l:'lll',m:'mmm',n:'nnn',o:'aw',p:'puh',q:'kwuh',r:'rrr',s:'sss',t:'tuh',u:'uh',v:'vvv',w:'wuh',x:'ks',y:'yuh',z:'zzz'};
 const PICS={
   a:[['🍎','apple'],['🐜','ant'],['🐊','alligator']],
@@ -562,7 +565,11 @@ function chooseVoice(){
   if(!('speechSynthesis' in window))return;
   const vs=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));
   const pref=['Samantha','Karen','Moira','Tessa','Ava','Allison','Susan','Google US English','Microsoft Aria','Microsoft Jenny'];
-  VOICE=null;for(const p of pref){const v=vs.find(v=>v.name.includes(p));if(v){VOICE=v;break;}}
+  const hq=v=>/enhanced|premium|natural/i.test(v.name+' '+(v.voiceURI||''));
+  VOICE=null;
+  for(const p of pref){const v=vs.find(v=>v.name.includes(p)&&hq(v));if(v){VOICE=v;break;}}
+  if(!VOICE)VOICE=vs.find(v=>hq(v)&&/en[-_]US/i.test(v.lang))||null;
+  if(!VOICE)for(const p of pref){const v=vs.find(v=>v.name.includes(p));if(v){VOICE=v;break;}}
   if(!VOICE)VOICE=vs.find(v=>/en[-_]US/i.test(v.lang))||vs[0]||null;
 }
 if('speechSynthesis' in window){chooseVoice();speechSynthesis.onvoiceschanged=chooseVoice;}
@@ -706,7 +713,7 @@ function openLand(i){
     g.appendChild(b);
   });
   show('land');
-  say(`${L.name}! Let's learn ${L.letters.map(l=>NAMES[l]).join(', ')}.`);
+  say(`${L.name}! Let's learn the letters ${L.letters.map(l=>NAMES[l]).join(', ')}.`);
 }
 
 /* ================= MASTERY ================= */
@@ -827,7 +834,7 @@ function qMatch(){
   R.speak=()=>say(`This is ${letterSay(b,upShown)}. Can you find ${letterSay(b,wantUp)}?`);R.speak();
   const opts=shuffle([b,...distractors(b,nChoices()-1)]);let right;
   opts.forEach(o=>{const el=makeChoice(wantUp?U(o):o,'',(btn,e)=>{
-    if(o===b)correct(btn,e,k,`${U(b)} and ${b}, ${NAMES[b]}!`);
+    if(o===b)correct(btn,e,k,`Big ${NAMES[b]} and little ${NAMES[b]}. They match!`);
     else wrong(btn,k,`That's ${letterSay(o,wantUp)}. Find ${letterSay(b,wantUp)}!`,right);
   });if(o===b)right=el;});
 }
@@ -845,13 +852,13 @@ function qSound(){
     R.speak();
     const opts=shuffle([b,...distractors(b,n-1)]);let right;
     opts.forEach(o=>{const el=makeChoice(U(o)+o,'pair',(btn,e)=>{
-      if(o===b)correct(btn,e,k,`${NAMES[b]} says ${SOUNDS[b]}, like ${word}!`);
-      else wrong(btn,k,`That's ${NAMES[o]}. It says ${SOUNDS[o]}. Listen: ${word}.`,right);
+      if(o===b)correct(btn,e,k,`The letter ${NAMES[b]} says ${SOUNDS[b]}, like ${word}!`);
+      else wrong(btn,k,`That's the letter ${NAMES[o]}. It says ${SOUNDS[o]}. Listen: ${word}.`,right);
     });if(o===b)right=el;});
   }else{
     // letter -> picture
     bubble(`<div class="show">${U(b)}${b}</div><div>Which one starts with ${U(b)}?</div>`);
-    R.speak=()=>say(`${NAMES[b]} says ${SOUNDS[b]}. Which picture starts with ${SOUNDS[b]}?`);R.speak();
+    R.speak=()=>say(`The letter ${NAMES[b]} says ${SOUNDS[b]}. Which picture starts with ${SOUNDS[b]}?`);R.speak();
     const others=distractors(b,n-1).filter(o=>PICS[o]&&!PICS[o].every(p=>p[2]));
     const opts=shuffle([[b,emo,word],...others.map(o=>{const p=pick(PICS[o].filter(p=>!p[2]));return [o,p[0],p[1]];})]);let right;
     opts.forEach(([o,e2,w2])=>{const el=makeChoice(e2,'pic',(btn,e)=>{
@@ -869,7 +876,7 @@ function qTrace(){
   }
   const ch=R.traceList[R.i];const b=ch.toLowerCase(),up=ch!==b;
   bubble(`<div>Trace ${caseWord(up)} <span style="font-family:var(--font-letter);color:var(--pink-deep)">${ch}</span></div>`);
-  R.speak=()=>say(`Trace ${letterSay(b,up)} with your finger. ${NAMES[b]} says ${SOUNDS[b]}.`);R.speak();
+  R.speak=()=>say(`Trace ${letterSay(b,up)} with your finger. The letter ${NAMES[b]} says ${SOUNDS[b]}.`);R.speak();
   const area=$('#playArea');area.className='trace-wrap';
   area.innerHTML=`<div class="trace-box" id="tbox"><canvas id="tGuide"></canvas><canvas id="tDraw"></canvas></div>
     <div class="trace-tools"><button class="round-btn" id="tClear" aria-label="Start over">🧽</button></div>`;
@@ -934,7 +941,7 @@ function setupTrace(ch,key){
       // fill the letter with rainbow
       const gr=gc.createLinearGradient(0,base-capH,0,base+fs*.2);RAINBOW.forEach((col,i)=>gr.addColorStop(i/6,col));
       gc.fillStyle=gr;gc.fillText(ch,W/2,base);dc.clearRect(0,0,W,H);
-      const r=d.getBoundingClientRect();correct(null,{clientX:r.left+r.width/2,clientY:r.top+r.height/2},null,`${NAMES[ch.toLowerCase()]}!`);
+      const r=d.getBoundingClientRect();correct(null,{clientX:r.left+r.width/2,clientY:r.top+r.height/2},null,`You traced the letter ${NAMES[ch.toLowerCase()]}!`);
     }else if(c>.15&&Math.random()<.35){say(pick(['Keep going!','You\'re doing great!','Almost!']),{interrupt:false});}
   }
   $('#tClear').onclick=()=>{if(done||R.cool)return;sfx.tap();dc.clearRect(0,0,W,H);};
@@ -1109,7 +1116,10 @@ function renderParent(){
   const lvl=k=>{const m=S.mastery[k];if(!m||(m.c+m.w)===0)return 0;return (m.c>=5&&m.c/(m.c+m.w)>=.75)?2:1;};
   $('#pGrid').innerHTML=order.map(l=>{const a=lvl(U(l)),b=lvl(l),lv=Math.min(a,b)===2?2:(a||b)?1:0;
     const mU=S.mastery[U(l)]||{c:0,w:0},mL=S.mastery[l]||{c:0,w:0};
-    return `<div class="lcell l${lv}">${U(l)}${l}<small>✓${mU.c+mL.c} ✗${mU.w+mL.w}</small></div>`;}).join('');
+    return `<div class="lcell l${lv}" data-l="${l}" role="button" tabindex="0">${U(l)}${l}<small>✓${mU.c+mL.c} ✗${mU.w+mL.w}</small></div>`;}).join('');
+  $('#pGrid').querySelectorAll('.lcell').forEach(c=>c.onclick=()=>{const l=c.dataset.l;const pic=PICS[l][0];
+    say(`Big ${NAMES[l]}, little ${NAMES[l]}. The letter ${NAMES[l]} says ${SOUNDS[l]}, like ${pic[1]}.`);});
+  $('#pVoiceName').textContent=VOICE?`Voice: ${VOICE.name}`:'Voice: iPad default';
   $('#resetRow').innerHTML='<button class="pbtn danger" id="pReset">Reset progress</button>';
   $('#pReset').onclick=()=>{$('#resetRow').innerHTML='<span>Erase everything?</span><button class="pbtn danger" id="pYes">Yes, erase</button><button class="pbtn plain" id="pNo">Cancel</button>';
     $('#pYes').onclick=()=>{const keep={name:S.name,voice:S.voice};S=Object.assign(freshState(),keep);save();renderParent();};
@@ -1117,6 +1127,7 @@ function renderParent(){
 }
 $('#pNameSave').onclick=()=>{S.name=$('#pName').value.trim();save();$('#pNameSave').textContent='Saved ✓';setTimeout(()=>$('#pNameSave').textContent='Save',1500);};
 $('#pVoice').onchange=e=>{S.voice=e.target.checked;save();if(!S.voice&&window.speechSynthesis)speechSynthesis.cancel();};
+$('#pTest').onclick=()=>say(`Big ${NAMES.a}. Big ${NAMES.i}. The letter ${NAMES.a}, like acorn. The letter ${NAMES.i}, like ice cream.`);
 $('#pUnlock').onchange=e=>{S.unlockAll=e.target.checked;save();};
 $('#pFour').onchange=e=>{S.four=e.target.checked;save();};
 
