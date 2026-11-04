@@ -408,7 +408,7 @@
       controls = `<div class="choices">${a.choices.map((c, i) => `<button class="btn choice" data-act="choose-answer" data-arg="${i}"><span class="key">${i + 1}</span>${c}</button>`).join('')}</div>`;
     } else {
       const keys = ['7', '8', '9', '⌫', '4', '5', '6', '−', '1', '2', '3', '/', '0', '.', 'space', '✓'];
-      controls = `<div class="answer-box"><span id="answer-display">${esc(S.input) || '<span class="ph">type your answer</span>'}</span></div>
+      controls = `<div class="answer-box"><span id="answer-display">${showInput(S.input) || '<span class="ph">type your answer</span>'}</span></div>
         <div class="keypad">${keys.map((k) => `<button class="key-btn ${k === '✓' ? 'go' : ''} ${k === 'space' ? 'small' : ''}" data-act="key" data-arg="${k}">${k === 'space' ? 'space<small>2 1/3</small>' : k}</button>`).join('')}</div>`;
     }
     const canHint = S.mode !== 'daily' && !S.hintShown && !S.answered;
@@ -431,11 +431,18 @@
     if (S.timeSecs && !S.answered) tick();
   }
 
+  // Show typed answers with thousands commas (4000 → 4,000). The stored answer has no commas,
+  // and the checker ignores commas, so "4,000" and "4000" are always treated the same.
+  function withCommas(input) {
+    return String(input).replace(/(^|[^.\d])(\d{4,})/g, (m, pre, digits) => pre + digits.replace(/\B(?=(\d{3})+(?!\d))/g, ','));
+  }
+  const showInput = (input) => esc(withCommas(input));
   function updateDisplay() {
     const d = document.getElementById('answer-display');
-    if (d) d.innerHTML = esc(S.input) || '<span class="ph">type your answer</span>';
+    if (d) d.innerHTML = showInput(S.input) || '<span class="ph">type your answer</span>';
   }
   function editInput(input, k) {
+    if (k === ',') return input; // commas are added automatically, so a typed comma changes nothing
     if (k === '⌫') return input.slice(0, -1);
     if (k === 'space') return input && !input.endsWith(' ') ? input + ' ' : input;
     if (k === '−' || k === '-') return input.startsWith('-') ? input.slice(1) : '-' + input;
@@ -701,7 +708,7 @@
     if (a.kind === 'choice') controls = `<div class="rchoices">${a.choices.map((c, ci) => `<button data-rc="${i}|${ci}">${c}</button>`).join('')}</div>`;
     else {
       const keys = ['7', '8', '9', '⌫', '4', '5', '6', '−', '1', '2', '3', '/', '0', '.', 'space', '✓'];
-      controls = `<div class="rans" id="ra${i}">${esc(pl.input) || '<span class="ph">answer</span>'}</div><div class="rkeys">${keys.map((k) => `<button data-rk="${i}|${k}" class="${k === '✓' ? 'go' : ''}">${k === 'space' ? '␣' : k}</button>`).join('')}</div>`;
+      controls = `<div class="rans" id="ra${i}">${showInput(pl.input) || '<span class="ph">answer</span>'}</div><div class="rkeys">${keys.map((k) => `<button data-rk="${i}|${k}" class="${k === '✓' ? 'go' : ''}">${k === 'space' ? '␣' : k}</button>`).join('')}</div>`;
     }
     const frozen = pl.frozenUntil > Date.now();
     el.innerHTML = `<div class="rhead"><span>${pl.avatar} ${esc(pl.name)}</span><span class="lvl-tag l${pl.lvl}">${LEVELS[pl.lvl].icon} Gr ${pl.grade}</span><span>${pl.score}/${RC.target}</span></div>
@@ -723,7 +730,7 @@
     if (k === '✓') return raceSubmit(i, pl.input);
     pl.input = editInput(pl.input, k);
     if (pl.msg) { pl.msg = ''; renderRacePanel(i); return; }
-    const d = document.getElementById('ra' + i); if (d) d.innerHTML = esc(pl.input) || '<span class="ph">answer</span>';
+    const d = document.getElementById('ra' + i); if (d) d.innerHTML = showInput(pl.input) || '<span class="ph">answer</span>';
   }
   function raceSubmit(i, value) {
     const pl = RC.pl[i];
@@ -921,7 +928,7 @@
       if (n >= 1 && n <= S.q.a.choices.length) { e.preventDefault(); submit(n - 1); }
       return;
     }
-    if (/^[0-9./]$/.test(e.key)) { e.preventDefault(); pressKey(e.key); }
+    if (/^[0-9.,/]$/.test(e.key)) { e.preventDefault(); pressKey(e.key); }
     else if (e.key === '-' || e.key === '−') { e.preventDefault(); pressKey('−'); }
     else if (e.key === ' ') { e.preventDefault(); pressKey('space'); }
     else if (e.key === 'Backspace') { e.preventDefault(); pressKey('⌫'); }
@@ -930,7 +937,7 @@
   });
 
   // used by automated play-tests to read the current question
-  MQ._debug = { session: () => S, race: () => RC, store: () => store };
+  MQ._debug = { session: () => S, race: () => RC, store: () => store, withCommas };
 
   // start
   if (P()) renderMap(); else renderProfiles();
