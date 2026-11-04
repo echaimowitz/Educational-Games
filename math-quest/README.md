@@ -8,15 +8,15 @@ Open `index.html` in any web browser (double-click it). Nothing needs to be inst
 
 To play on an iPad or share a link, host it free with **GitHub Pages**: in the repo go to *Settings → Pages*, choose the branch and `/ (root)`, and the game will be at `https://<your-username>.github.io/Educational-Games/math-quest/`.
 
-## Main worlds (one per grade, 8–9 missions each, plus a boss)
+## Main worlds (one per grade, 11–12 missions each, plus a boss)
 
 | Grade | World | Missions | Boss |
 |---|---|---|---|
-| 4 | 🐠 Rainbow Reef | Place value & rounding · Multi-digit multiplication · Division with remainders · Fractions · Word problems · Decimals (tenths/hundredths) · Angles · Factors, multiples & primes · Fraction × whole number | 🐙 Grumpy Kraken |
-| 5 | 🦄 Unicorn Meadows | Decimal operations · Adding/subtracting unlike fractions · Multiplying/dividing fractions · Order of operations · Word problems · Long division · Decimal place value & rounding · Coordinate plane & patterns | ⛈️ Thundercloud Troll |
-| 6 | 👑 Enchanted Castle | Ratios & rates · Percents · Dividing fractions · Equations, exponents, GCF/LCM · Word problems · Negative numbers & coordinate plane · Area, volume & surface area · Expressions & inequalities · Multi-digit decimals | 🧙‍♀️ Wicked Sorceress |
-| 7 | 🥋 Karate Dojo | Integers · Two-step equations · Proportions & percents · Probability, circles, angles · Word problems · Rational numbers · Inequalities · Scale drawings & prisms | 🥷 Shadow Ninja |
-| 8 | 🌟 Starlight Kingdom | Multi-step equations · Slope & linear functions · Exponents & scientific notation · Pythagorean theorem · Word problems · Systems of equations · Volume (cylinders, cones, spheres) · Transformations | 🐉 Rainbow Dragon |
+| 4 | 🐠 Rainbow Reef | Place value & rounding · Multi-digit multiplication · Division with remainders · Fractions · Word problems · Decimals (tenths/hundredths) · Angles · Factors, multiples & primes · Fraction × whole number · Multi-digit addition & subtraction · Mixed numbers · Symmetry & classifying shapes | 🐙 Grumpy Kraken |
+| 5 | 🦄 Unicorn Meadows | Decimal operations · Adding/subtracting unlike fractions · Multiplying/dividing fractions · Order of operations · Word problems · Long division · Decimal place value & rounding · Coordinate plane & patterns · Fractions as division & scaling · Volume · Classifying shapes | ⛈️ Thundercloud Troll |
+| 6 | 👑 Enchanted Castle | Ratios & rates · Percents · Dividing fractions · Equations, exponents, GCF/LCM · Word problems · Negative numbers & coordinate plane · Area, volume & surface area · Expressions & inequalities · Multi-digit decimals · Statistics (mean, median, IQR, MAD) · Equations with fractions & decimals · Polygons on the coordinate plane | 🧙‍♀️ Wicked Sorceress |
+| 7 | 🥋 Karate Dojo | Integers · Two-step equations · Proportions & percents · Probability, circles, angles · Word problems · Rational numbers · Inequalities · Scale drawings & prisms · Angle equations · Interest, markup & commission · Sampling & predictions | 🥷 Shadow Ninja |
+| 8 | 🌟 Starlight Kingdom | Multi-step equations · Slope & linear functions · Exponents & scientific notation · Pythagorean theorem · Word problems · Systems of equations · Volume (cylinders, cones, spheres) · Transformations · Functions · Rational & irrational numbers · Parallel lines & exterior angles | 🐉 Rainbow Dragon |
 
 ## Bonus worlds (always open, matched to the player's grade)
 
@@ -59,5 +59,5 @@ Progress is saved in the browser (`localStorage`) on each device.
 - `js/questions.js`: question generators for every topic and level, plus answer checking (accepts fractions, mixed numbers, decimals, negatives). Bonus-world generators also take the player's grade.
 - `js/worlds.js`: worlds, missions, story and bosses
 - `js/game.js`: screens, profiles, missions, bosses, daily challenge, race mode, shop and badges
-- `tests/check-questions.js`: run `node math-quest/tests/check-questions.js` to generate about 120,000 questions and confirm each is well-formed and its answer is accepted
-- `tests/oracle.js`: run `node math-quest/tests/oracle.js` for an **independent math check**. It reads each question as the kid sees it, recomputes the answer from scratch (evaluating expressions, plugging solutions back into equations, rounding by digits, checking factors, inequalities, systems and transformations), and compares it with the answer key. Word problems and data questions are checked by hand.
+- `tests/check-questions.js`: run `node math-quest/tests/check-questions.js` to generate about 140,000 questions and confirm each is well-formed and its answer is accepted
+- `tests/oracle.js`: run `node math-quest/tests/oracle.js` for an **independent math check**. It reads each question as the kid sees it, recomputes the answer from scratch (evaluating expressions, plugging solutions back into equations, rounding by digits, checking factors, inequalities, systems, transformations, angle equations, statistics, functions and more), and compares it with the answer key. Word problems and data questions are checked by hand.

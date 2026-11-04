@@ -1243,6 +1243,237 @@
     return { q: `Point <b>${P}</b> is <b>rotated ${k === 'r90' ? '90° counterclockwise' : '180°'}</b> around the origin. Where does it land?`, a: choice(c, [k === 'r90' ? opts.r270 : opts.r90, k === 'r90' ? opts.r180 : opts.rx, opts.swap, opts.ry]), hint: k === 'r90' ? `90° counterclockwise: (x, y) → (−y, x).` : `180°: (x, y) → (−x, −y).`, explain: `${P} → ${c}.` };
   };
 
+  // ======================= ROUND 3: three more topics per grade =======================
+  const deg = (s) => `<b>${s}°</b>`;
+  const lin = (a, b, v = X) => `${term(a, v, true)}${constTerm(b)}`; // "3x + 10"
+
+  // ---- Grade 4: multi-digit addition & subtraction (4.NBT.4)
+  G.g4_addsub = (l) => {
+    if (l === 1) { const a = R(1200, 8999), b = R(1200, 8999); return { q: `Add:${big(`${fmt(a)} + ${fmt(b)}`)}`, a: num(a + b), hint: `Line up the place values. Start with the ones and regroup (carry) when a column makes 10 or more.`, explain: `${fmt(a)} + ${fmt(b)} = ${fmt(a + b)}.` }; }
+    if (l === 2) {
+      const a = R(1, 9) * 10000 + R(0, 9) * 100 + pick([0, 0, R(1, 9)]), b = R(1001, a - 101);
+      return { q: `Subtract:${big(`${fmt(a)} ${MINUS} ${fmt(b)}`)}`, a: num(a - b), hint: `Regroup across zeros: borrow from the first nonzero digit to the left. Check by adding your answer to ${fmt(b)}.`, explain: `${fmt(a)} − ${fmt(b)} = ${fmt(a - b)}. Check: ${fmt(a - b)} + ${fmt(b)} = ${fmt(a)}.` };
+    }
+    if (Math.random() < 0.5) { const t = pick([10000, 20000, 50000, 100000]), b = R(1001, t - 1001); return { q: `Find the missing number:${big(`? + ${fmt(b)} = ${fmt(t)}`)}`, a: num(t - b), hint: `Undo the addition: ${fmt(t)} − ${fmt(b)}.`, explain: `${fmt(t)} − ${fmt(b)} = ${fmt(t - b)}.` }; }
+    const a = R(20000, 89999), b = R(10000, 49999), c = R(1000, a + b - 1000);
+    return { q: `Solve from left to right:${big(`${fmt(a)} + ${fmt(b)} ${MINUS} ${fmt(c)}`)}`, a: num(a + b - c), hint: `First add ${fmt(a)} + ${fmt(b)}, then subtract ${fmt(c)}.`, explain: `${fmt(a)} + ${fmt(b)} = ${fmt(a + b)}; ${fmt(a + b)} − ${fmt(c)} = ${fmt(a + b - c)}.` };
+  };
+
+  // ---- Grade 4: adding & subtracting mixed numbers, like denominators (4.NF.3)
+  G.g4_mixed = (l) => {
+    const d = R(3, 12);
+    let w1 = R(1, 8), w2 = R(1, 6), n1, n2, sub;
+    if (l === 1) { sub = false; n1 = R(1, d - 2); n2 = R(1, d - 1 - n1); }
+    else if (l === 2) { sub = Math.random() < 0.5; if (sub) { n2 = R(1, d - 2); n1 = R(n2 + 1, d - 1); w1 = w2 + R(1, 4); } else { n1 = R(2, d - 1); n2 = R(d - n1, d - 1); } }
+    else { sub = true; n1 = R(1, d - 2); n2 = R(n1 + 1, d - 1); w1 = w2 + R(1, 5); }
+    const A = w1 * d + n1, B = w2 * d + n2, res = sub ? A - B : A + B;
+    const regroup = sub ? n1 < n2 : n1 + n2 >= d;
+    return { q: `${sub ? 'Subtract' : 'Add'}. (Mixed numbers or fractions are both OK.)${big(`${mixed(w1, n1, d)} ${sub ? MINUS : '+'} ${mixed(w2, n2, d)}`)}`, a: frac(res, d),
+      hint: sub ? (regroup ? `${n1} − ${n2} won't work, so trade 1 whole for ${fr(d, d)}: ${mixed(w1, n1, d)} = ${mixed(w1 - 1, n1 + d, d)}.` : `Subtract the wholes, then subtract the fractions.`) : `Add the wholes, then add the fractions.${regroup ? ` If the fraction part is ${fr(d, d)} or more, trade it for 1 whole.` : ''}`,
+      explain: `${fr(A, d)} ${sub ? '−' : '+'} ${fr(B, d)} = ${fracHTML(res, d)}.` };
+  };
+
+  // ---- Grade 4: lines, symmetry & classifying shapes (4.G.1–3)
+  const SYM = [['a square', 4], ['a rectangle (not a square)', 2], ['an equilateral triangle', 3], ['a regular hexagon', 6], ['a regular pentagon', 5], ['an isosceles triangle (not equilateral)', 1], ['a scalene triangle', 0], ['a rhombus (not a square)', 2], ['a parallelogram with no right angles and unequal sides', 0], ['a regular octagon', 8], ['a heart shape ♥', 1]];
+  const QUADS = [['I have 4 equal sides and 4 right angles.', 'Square'], ['I have 4 right angles, but my sides are not all equal.', 'Rectangle'], ['I have 4 equal sides, but no right angles.', 'Rhombus'], ['I have exactly one pair of parallel sides.', 'Trapezoid'], ['I have 2 pairs of parallel sides, no right angles, and my sides are not all equal.', 'Parallelogram']];
+  G.g4_shapes = (l) => {
+    if (l === 1) { const [s, n] = pick(SYM); return { q: `How many <b>lines of symmetry</b> does ${s} have?`, a: num(n), hint: `A line of symmetry folds the shape into two matching halves. Imagine folding it every way you can.`, explain: `${s[0].toUpperCase() + s.slice(1)} has ${n} line${n === 1 ? '' : 's'} of symmetry.` }; }
+    if (l === 2) {
+      if (Math.random() < 0.5) {
+        const k = pick(['Acute', 'Right', 'Obtuse']);
+        let A, B; if (k === 'Right') { A = 90; B = R(20, 70); } else if (k === 'Obtuse') { A = R(95, 150); B = R(10, 175 - A); } else { A = R(50, 85); B = R(Math.max(10, 96 - A), 85); }
+        const C = 180 - A - B, angs = shuffle([A, B, C]);
+        if (k === 'Acute' && Math.max(...angs) >= 90) return G.g4_shapes(l);
+        return { q: `A triangle has angles of <b>${angs.join('°, ')}°</b>. What kind of triangle is it?`, a: choiceFixed(['Acute triangle', 'Right triangle', 'Obtuse triangle'], k + ' triangle'), hint: `Look at the BIGGEST angle: less than 90° → acute, exactly 90° → right, more than 90° → obtuse.`, explain: `The biggest angle is ${Math.max(...angs)}°, so it's ${k.toLowerCase()}.` };
+      }
+      const k = pick(['Equilateral', 'Isosceles', 'Scalene']); let s;
+      if (k === 'Equilateral') { const x = R(3, 15); s = [x, x, x]; } else if (k === 'Isosceles') { const x = R(4, 15); let y; do { y = R(2, 2 * x - 1); } while (y === x); s = shuffle([x, x, y]); } else { let a, b, c; do { a = R(3, 15); b = R(3, 15); c = R(3, 15); } while (a === b || b === c || a === c || a + b <= c || a + c <= b || b + c <= a); s = [a, b, c]; }
+      return { q: `A triangle has sides of <b>${s.join(' cm, ')} cm</b>. What kind of triangle is it?`, a: choiceFixed(['Equilateral', 'Isosceles', 'Scalene'], k), hint: `All 3 sides equal → equilateral. Exactly 2 equal → isosceles. None equal → scalene.`, explain: `It is ${k.toLowerCase()}.` };
+    }
+    const [clue, ans] = pick(QUADS);
+    return { q: `Shape riddle: <b>"${clue}"</b> What shape am I?`, a: choice(ans, QUADS.map((x) => x[1]).filter((x) => x !== ans)), hint: `Think about sides (equal? parallel?) and angles (right angles?).`, explain: `"${clue}" describes a ${ans.toLowerCase()}.` };
+  };
+
+  // ---- Grade 5: fractions as division & multiplication as scaling (5.NF.3, 5.NF.5, 5.NF.6)
+  G.g5_scaling = (l) => {
+    if (l === 1) { const b = R(2, 9), a = R(1, 12); return { q: `<b>${a}</b> magic pies are shared equally by <b>${b}</b> unicorns. How much pie does each unicorn get? (A fraction or mixed number is fine.)`, a: frac(a, b), hint: `Sharing ${a} things among ${b} means ${a} ÷ ${b}, which is the fraction ${fr(a, b)}.`, explain: `${a} ÷ ${b} = ${fracHTML(a, b)} of a pie each.` }; }
+    if (l === 2) {
+      const n = R(24, 500), kind = pick(['less', 'greater', 'equal']), d = R(3, 9);
+      const f = kind === 'less' ? [R(1, d - 1), d] : kind === 'greater' ? [d + R(1, 5), d] : [d, d];
+      const opts = [`Greater than ${n}`, `Less than ${n}`, `Equal to ${n}`], ans = kind === 'less' ? opts[1] : kind === 'greater' ? opts[0] : opts[2];
+      return { q: `Without multiplying: is <b>${fr(f[0], f[1])} × ${n}</b> greater than, less than, or equal to <b>${n}</b>?`, a: choiceFixed(opts, ans), hint: `Multiplying by a fraction LESS than 1 makes a number smaller. More than 1 makes it bigger. Exactly 1 keeps it the same.`, explain: `${fr(f[0], f[1])} is ${kind === 'less' ? 'less than' : kind === 'greater' ? 'more than' : 'equal to'} 1, so the product is ${ans.toLowerCase()}.` };
+    }
+    const b = R(2, 5), a = R(1, b - 1), w1 = R(1, 4), d = R(2, 5), c = R(1, d - 1), w2 = R(1, 3);
+    const N1 = w1 * b + a, N2 = w2 * d + c;
+    return { q: `Multiply. (Fractions or mixed numbers are both OK.)${big(`${mixed(w1, a, b)} × ${mixed(w2, c, d)}`)}`, a: frac(N1 * N2, b * d), hint: `Change both to improper fractions first: ${fr(N1, b)} × ${fr(N2, d)}.`, explain: `${fr(N1, b)} × ${fr(N2, d)} = ${fr(N1 * N2, b * d)} = ${fracHTML(N1 * N2, b * d)}.` };
+  };
+
+  // ---- Grade 5: volume with unit cubes, V = B × h, composite figures (5.MD.3–5)
+  G.g5_volume = (l) => {
+    if (l === 1) { const L = R(2, 8), W = R(2, 6), H = R(2, 6); return { q: `A unicorn toy box is packed with 1-inch cubes: <b>${L}</b> cubes long, <b>${W}</b> cubes wide and <b>${H}</b> layers tall. How many cubes are inside?`, a: num(L * W * H), hint: `One layer has ${L} × ${W} cubes. How many layers are there?`, explain: `${L} × ${W} = ${L * W} per layer; × ${H} layers = ${L * W * H} cubes.` }; }
+    if (l === 2) { const B = R(6, 60), h = R(2, 12); return { q: `A crystal prism has a <b>base area of ${B} square cm</b> and a <b>height of ${h} cm</b>. What is its volume?`, a: num(B * h), hint: `Volume = base area × height.`, explain: `${B} × ${h} = ${B * h} cubic cm.` }; }
+    const d = [R(2, 10), R(2, 8), R(2, 8), R(2, 10), R(2, 8), R(2, 8)], v1 = d[0] * d[1] * d[2], v2 = d[3] * d[4] * d[5];
+    return { q: `A unicorn stable is made of two rectangular prisms stuck together. Part A is <b>${d[0]} × ${d[1]} × ${d[2]} m</b> and part B is <b>${d[3]} × ${d[4]} × ${d[5]} m</b>. What is the total volume?`, a: num(v1 + v2), hint: `Find each part's volume separately, then add.`, explain: `A: ${v1} cubic m. B: ${v2} cubic m. Total: ${v1 + v2} cubic m.` };
+  };
+
+  // ---- Grade 5: classifying 2-D figures (5.G.3–4)
+  const FACTS = [['Every square is a rectangle.', 'True'], ['Every rectangle is a square.', 'False'], ['Every square is a rhombus.', 'True'], ['Every rhombus is a square.', 'False'], ['Every rectangle is a parallelogram.', 'True'], ['Every parallelogram is a rectangle.', 'False'], ['Every rhombus is a parallelogram.', 'True'], ['Every parallelogram is a quadrilateral.', 'True'], ['Every quadrilateral is a parallelogram.', 'False'], ['Every equilateral triangle is also isosceles.', 'True'], ['Every isosceles triangle is equilateral.', 'False'], ['A right triangle can also be isosceles.', 'True'], ['A triangle can have two right angles.', 'False'], ['A triangle can be both right and obtuse.', 'False'], ['A rhombus always has 4 equal sides.', 'True'], ['A rectangle always has 4 equal sides.', 'False']];
+  const PROPS = [['How many pairs of parallel sides does a rectangle have?', 2], ['How many pairs of parallel sides does a triangle have?', 0], ['How many pairs of parallel sides does a regular hexagon have?', 3], ['How many pairs of parallel sides does a regular octagon have?', 4], ['How many right angles does a square have?', 4], ['How many right angles can a triangle have at most?', 1], ['What do the angles of any triangle add up to (in degrees)?', 180], ['What do the angles of any quadrilateral add up to (in degrees)?', 360], ['How many sides does a hexagon have?', 6], ['How many sides does an octagon have?', 8]];
+  G.g5_shapes = (l) => {
+    if (l < 3) { const pool = l === 1 ? FACTS.slice(0, 9) : FACTS.slice(9); const [s, ans] = pick(pool); return { q: `True or false? <b>"${s}"</b>`, a: choiceFixed(['True', 'False'], ans), hint: `Think about what each shape MUST have. A shape belongs to a group if it has all of that group's properties.`, explain: `${s} → ${ans}.` }; }
+    const [s, n] = pick(PROPS);
+    return { q: s, a: num(n), hint: `Picture or sketch the shape.`, explain: `The answer is ${n}.` };
+  };
+
+  // ---- Grade 6: statistics: mean, median, IQR, MAD (6.SP.3–5)
+  G.g6_stats = (l) => {
+    if (l === 1) { const n = R(4, 6), m = R(8, 40), v = meanSet(n, m, Math.max(3, Math.floor(m / 3))); return { q: `The royal archers scored ${listStr(v)}. What is the <b>mean</b> score?`, a: num(m), hint: `Add all ${n} scores, then divide by ${n}.`, explain: `Sum = ${n * m}; ${n * m} ÷ ${n} = ${m}.` }; }
+    if (l === 2) {
+      if (Math.random() < 0.5) { const n = pick([6, 8]), v = Array.from({ length: n }, () => R(10, 99)), s = v.slice().sort((a, b) => a - b), med = (s[n / 2 - 1] + s[n / 2]) / 2; return { q: `Guests at ${n} royal parties: ${listStr(v)}. What is the <b>median</b>?`, a: num(med), hint: `Order them. With an even count, the median is halfway between the two middle numbers.`, explain: `Ordered: ${s.join(', ')}. Median = (${s[n / 2 - 1]} + ${s[n / 2]}) ÷ 2 = ${fmt(med)}.` }; }
+      const v = Array.from({ length: 8 }, () => R(10, 99)), s = v.slice().sort((a, b) => a - b), q1 = (s[1] + s[2]) / 2, q3 = (s[5] + s[6]) / 2;
+      return { q: `Jewels in 8 royal chests: ${listStr(v)}. What is the <b>interquartile range</b> (IQR)?`, a: num(q3 - q1), hint: `Order the data. Q1 = median of the lower 4 values; Q3 = median of the upper 4. IQR = Q3 − Q1.`, explain: `Ordered: ${s.join(', ')}. Q1 = ${fmt(q1)}, Q3 = ${fmt(q3)}, IQR = ${fmt(q3 - q1)}.` };
+    }
+    const n = pick([4, 5]), m = R(10, 30), v = meanSet(n, m, 8), dev = v.map((x) => Math.abs(x - m)), mad = dev.reduce((a, b) => a + b, 0) / n;
+    return { q: `Dragon eggs found each day: ${listStr(v)}. The mean is <b>${m}</b>. What is the <b>mean absolute deviation</b> (MAD)?`, a: num(mad), hint: `Find how far each value is from ${m} (ignore negatives), then average those distances.`, explain: `Distances: ${dev.join(', ')}. Average = ${dev.reduce((a, b) => a + b, 0)} ÷ ${n} = ${fmt(mad)}.` };
+  };
+
+  // ---- Grade 6: equations with fractions & decimals (6.EE.7)
+  G.g6_eqdec = (l) => {
+    if (l === 1) {
+      if (Math.random() < 0.5) { const c = pick([0.2, 0.25, 0.4, 0.5, 0.8, 1.5, 2.5]), x = R(2, 40), b = rnd(c * x); return { q: `Solve for ${X}:${big(`${c}${X} = ${fmt(b)}`)}`, a: num(x), hint: `Divide both sides by ${c}.`, explain: `${fmt(b)} ÷ ${c} = ${fmt(x)}.` }; }
+      const a = R(11, 99) / 4, x = R(5, 120) / 4; return { q: `Solve for ${X}:${big(`${X} + ${fmt(a)} = ${fmt(a + x)}`)}`, a: num(x), hint: `Subtract ${fmt(a)} from both sides. Line up the decimals!`, explain: `${fmt(a + x)} − ${fmt(a)} = ${fmt(x)}.` };
+    }
+    if (l === 2) {
+      if (Math.random() < 0.5) { const d = R(2, 9), n = R(1, d - 1), k = R(2, 12); return { q: `Solve for ${X}:${big(`${fr(n, d)}${X} = ${n * k}`)}`, a: num(d * k), hint: `Multiply both sides by the reciprocal ${fr(d, n)}.`, explain: `${n * k} × ${fr(d, n)} = ${d * k}.` }; }
+      const d1 = R(2, 6), d2 = R(2, 6), n1 = R(1, d1 - 1), n2 = R(1, 2 * d2);
+      return { q: `Solve for ${X}:${big(`${X} ${MINUS} ${fr(n1, d1)} = ${fr(n2, d2)}`)}`, a: frac(n2 * d1 + n1 * d2, d1 * d2), hint: `Add ${fr(n1, d1)} to both sides. Use a common denominator.`, explain: `${X} = ${fr(n2, d2)} + ${fr(n1, d1)} = ${fracHTML(n2 * d1 + n1 * d2, d1 * d2)}.` };
+    }
+    if (Math.random() < 0.5) { const n = R(3, 8), c = 5 * R(20, 199), t = n * c; return { q: `Princess Lumi buys <b>${n}</b> identical ribbons for <b>${money(t / 100)}</b> in all. Solve <b>${n}<i>p</i> = ${money(t / 100).slice(1)}</b> to find the price of one ribbon.`, a: cash(c / 100), hint: `Divide ${money(t / 100)} by ${n}.`, explain: `${money(t / 100)} ÷ ${n} = ${money(c / 100)}.` }; }
+    let d, n; do { d = R(3, 8); n = R(1, d - 1); } while (gcd(n, d) !== 1);
+    const k = R(3, 15);
+    return { q: `${fr(n, d)} of the castle guests are dancing. That's <b>${n * k}</b> guests. How many guests are at the castle in all? (Solve ${fr(n, d)}<i>g</i> = ${n * k}.)`, a: num(d * k), hint: `If ${n} part${n > 1 ? 's' : ''} = ${n * k}, then 1 part = ${k}. There are ${d} parts.`, explain: `${n * k} ÷ ${n} = ${k} per part; ${k} × ${d} = ${d * k} guests.` };
+  };
+
+  // ---- Grade 6: polygons on the coordinate plane (6.G.3, 6.NS.8)
+  G.g6_poly = (l) => {
+    if (l === 1) {
+      if (Math.random() < 0.5) { const y = nz(-8, 8), x1 = R(-9, -1), x2 = R(1, 9); return { q: `How long is the castle wall from <b>${pt(x1, y)}</b> to <b>${pt(x2, y)}</b>?`, a: num(x2 - x1), hint: `Same y, so count across. From ${fmt(x1)} to 0 is ${-x1}, and 0 to ${x2} is ${x2}.`, explain: `${-x1} + ${x2} = ${x2 - x1} units.` }; }
+      const x = nz(-8, 8), y1 = R(-9, -1), y2 = R(1, 9); return { q: `How long is the tower from <b>${pt(x, y1)}</b> to <b>${pt(x, y2)}</b>?`, a: num(y2 - y1), hint: `Same x, so count up and down.`, explain: `${-y1} + ${y2} = ${y2 - y1} units.` };
+    }
+    if (l === 2) {
+      const x1 = R(-8, -1), x2 = R(1, 8), y1 = R(-8, -1), y2 = R(1, 8), ar = Math.random() < 0.5;
+      return { q: `A castle garden is a rectangle with corners at <b>${pt(x1, y1)}</b>, <b>${pt(x2, y1)}</b>, <b>${pt(x2, y2)}</b> and <b>${pt(x1, y2)}</b>. What is its <b>${ar ? 'area' : 'perimeter'}</b>?`, a: num(ar ? (x2 - x1) * (y2 - y1) : 2 * (x2 - x1 + y2 - y1)), hint: `Width = ${x2} − (${fmt(x1)}) and height = ${y2} − (${fmt(y1)}).`, explain: `Width ${x2 - x1}, height ${y2 - y1}. ${ar ? `Area = ${(x2 - x1) * (y2 - y1)}` : `Perimeter = ${2 * (x2 - x1 + y2 - y1)}`}.` };
+    }
+    const x1 = R(-8, 0), x2 = x1 + 2 * R(1, 6), y1 = R(-6, 2), y3 = y1 + R(2, 9), x3 = R(-8, 8);
+    return { q: `A triangular royal flag has corners at <b>${pt(x1, y1)}</b>, <b>${pt(x2, y1)}</b> and <b>${pt(x3, y3)}</b>. What is its area?`, a: num(((x2 - x1) * (y3 - y1)) / 2), hint: `The base is the flat side from ${pt(x1, y1)} to ${pt(x2, y1)}. The height is how far ${pt(x3, y3)} is above it.`, explain: `Base ${x2 - x1}, height ${y3 - y1}: ${fr(1, 2)} × ${x2 - x1} × ${y3 - y1} = ${((x2 - x1) * (y3 - y1)) / 2}.` };
+  };
+
+  // ---- Grade 7: writing & solving equations from angle relationships (7.G.5)
+  G.g7_angles = (l) => {
+    const x = R(5, 30);
+    if (l === 1) {
+      const a = R(2, 5), b = R(-10, 30), v = a * x + b;
+      if (v <= 10 || v >= 170) return G.g7_angles(l);
+      return { q: `Two lines cross. One angle is ${deg(`(${lin(a, b)})`)} and the angle <b>vertical</b> to it is ${deg(v)}. What is ${X}?`, a: num(x), hint: `Vertical angles are equal: ${lin(a, b)} = ${v}.`, explain: `${a}x${constTerm(b)} = ${v} → ${a}x = ${v - b} → x = ${x}.` };
+    }
+    if (l === 2) {
+      const a = R(2, 6), b = R(-10, 20), c = R(1, 5), total = pick([90, 180]), dd = total - (a + c) * x - b, v1 = a * x + b, v2 = c * x + dd;
+      if (v1 <= 5 || v2 <= 5) return G.g7_angles(l);
+      return { q: `Angles ${deg(`(${lin(a, b)})`)} and ${deg(`(${lin(c, dd)})`)} are <b>${total === 90 ? 'complementary' : 'supplementary'}</b>. What is ${X}?`, a: num(x), hint: `${total === 90 ? 'Complementary' : 'Supplementary'} angles add up to ${total}°: (${lin(a, b)}) + (${lin(c, dd)}) = ${total}.`, explain: `${a + c}x${constTerm(b + dd)} = ${total} → x = ${x}. (The angles are ${v1}° and ${v2}°.)` };
+    }
+    const a = R(1, 3), b = R(1, 3), c = R(1, 3), e = R(-10, 30), f = 180 - (a + b + c) * x - e;
+    const angs = [a * x, b * x + e, c * x + f];
+    if (angs.some((v) => v <= 5)) return G.g7_angles(l);
+    return { q: `A triangle has angles ${deg(`${term(a, X, true)}`)}, ${deg(`(${lin(b, e)})`)} and ${deg(`(${lin(c, f)})`)}. What is ${X}?`, a: num(x), hint: `The three angles of a triangle add up to 180°.`, explain: `${a + b + c}x${constTerm(e + f)} = 180 → x = ${x}. (Angles: ${angs.join('°, ')}°.)` };
+  };
+
+  // ---- Grade 7: simple interest, markup, commission, percent error (7.RP.3)
+  G.g7_money = (l) => {
+    if (l === 1) { const P = 100 * R(2, 30), r = R(2, 8), t = R(1, 5); return { q: `Sensei Koa puts <b>$${fmt(P)}</b> in a savings account that earns <b>${r}%</b> simple interest per year. How much <b>interest</b> does he earn in <b>${t}</b> year${t > 1 ? 's' : ''}?`, a: cash((P * r * t) / 100), hint: `Simple interest: I = P × r × t = ${fmt(P)} × ${r / 100} × ${t}.`, explain: `${fmt(P)} × ${r / 100} × ${t} = ${money((P * r * t) / 100)}.` }; }
+    if (l === 2) {
+      if (Math.random() < 0.5) { const c = 4 * R(3, 25), m = pick([25, 50, 75, 100]); return { q: `The dojo shop buys karate belts for <b>$${c}</b> each and marks them up <b>${m}%</b>. What is the selling price?`, a: cash(c + (c * m) / 100), hint: `Markup = ${m}% of $${c}. Add it to the cost.`, explain: `${m}% of ${c} = ${(c * m) / 100}; $${c} + $${(c * m) / 100} = ${money(c + (c * m) / 100)}.` }; }
+      const S = 50 * R(4, 60), r = pick([3, 4, 5, 6, 8, 10]); return { q: `A salesperson earns <b>${r}%</b> commission. She sells <b>$${fmt(S)}</b> of karate gear. How much commission does she earn?`, a: cash((S * r) / 100), hint: `Commission = ${r}% of $${fmt(S)}.`, explain: `${r / 100} × ${fmt(S)} = ${money((S * r) / 100)}.` };
+    }
+    if (Math.random() < 0.5) { const A = 20 * R(2, 15), p = 5 * R(1, 6), up = Math.random() < 0.5, E = up ? A + (A * p) / 100 : A - (A * p) / 100; return { q: `Mia guessed there were <b>${E}</b> students at the tournament. There were actually <b>${A}</b>. What is her <b>percent error</b>?`, a: num(p), hint: `Percent error = |guess − actual| ÷ actual × 100.`, explain: `|${E} − ${A}| = ${Math.abs(E - A)}; ${Math.abs(E - A)} ÷ ${A} × 100 = ${p}%.` }; }
+    const P = 100 * R(2, 20), r = R(2, 6), t = R(2, 5);
+    return { q: `<b>$${fmt(P)}</b> earns <b>${r}%</b> simple interest per year for <b>${t}</b> years. What is the <b>total</b> in the account at the end (starting amount plus interest)?`, a: cash(P + (P * r * t) / 100), hint: `Find the interest (P × r × t), then add it to $${fmt(P)}.`, explain: `Interest: ${money((P * r * t) / 100)}. Total: ${money(P + (P * r * t) / 100)}.` };
+  };
+
+  // ---- Grade 7: sampling, predictions & experimental probability (7.SP.1–2, 7.SP.6–8)
+  G.g7_sample = (l) => {
+    if (l === 1) { const n = pick([20, 25, 40, 50, 60, 80, 100]), k = R(1, n - 1); return { q: `Kai spins a spinner <b>${n}</b> times and lands on red <b>${k}</b> times. What is the <b>experimental probability</b> of red? (as a fraction)`, a: frac(k, n), hint: `Experimental probability = times it happened ÷ total tries.`, explain: `${k} ÷ ${n} = ${fracHTML(k, n)}.` }; }
+    if (l === 2) {
+      const s = pick([20, 25, 40, 50]), k = R(1, s - 1), g = gcd(k, s), mult = s / g, T = mult * R(Math.ceil(100 / mult), Math.floor(2000 / mult));
+      return { q: `In a random sample of <b>${s}</b> students, <b>${k}</b> said their favorite belt color is green. Predict how many of the school's <b>${fmt(T)}</b> students would say green.`, a: num((T * k) / s), hint: `Set up a proportion: ${fr(k, s)} = ${fr('?', fmt(T))}.`, explain: `${fr(k, s)} × ${fmt(T)} = ${fmt((T * k) / s)} students.` };
+    }
+    const f = R(1, 3);
+    if (f === 1) { const T = 6 * R(5, 40); return { q: `A fair number cube (1–6) is rolled <b>${T}</b> times. About how many times would you <b>expect</b> to roll a ${R(1, 6)}?`, a: num(T / 6), hint: `The theoretical probability of any one number is ${fr(1, 6)}.`, explain: `${fr(1, 6)} × ${T} = ${T / 6}.` }; }
+    if (f === 2) { const a = R(2, 6), b = R(2, 6), c = R(2, 4); return { q: `Mia has <b>${a}</b> headbands, <b>${b}</b> karate gis and <b>${c}</b> belts. How many different outfits (one of each) can she make?`, a: num(a * b * c), hint: `Use the counting principle: multiply the choices.`, explain: `${a} × ${b} × ${c} = ${a * b * c} outfits.` }; }
+    const n = R(2, 4);
+    return { q: `You flip <b>${n}</b> fair coins. What is the probability they ALL land heads? (as a fraction)`, a: frac(1, 2 ** n), hint: `Each coin is ${fr(1, 2)}. Multiply for all ${n} coins.`, explain: `${Array(n).fill('½').join(' × ')} = ${fr(1, 2 ** n)}.` };
+  };
+
+  // ---- Grade 8: functions (8.F.1–3, 8.F.4–5)
+  G.g8_func = (l) => {
+    if (l === 1) {
+      const isF = Math.random() < 0.5, xs = shuffle([-4, -3, -2, -1, 0, 1, 2, 3, 4, 5]).slice(0, 4), pairs = xs.map((x) => [x, R(-9, 9)]);
+      if (!isF) { let y; do { y = R(-9, 9); } while (y === pairs[0][1]); pairs[3] = [pairs[0][0], y]; }
+      return { q: `Is this relation a <b>function</b>?${big(`{ ${shuffle(pairs).map((p) => pt(p[0], p[1])).join(', ')} }`)}`, a: choiceFixed(['Yes', 'No'], isF ? 'Yes' : 'No'), hint: `A function gives each input (x) exactly ONE output (y). Look for a repeated x with different y's.`, explain: isF ? `Every x appears once, so it is a function.` : `x = ${fmt(pairs[0][0])} has two different outputs, so it is NOT a function.` };
+    }
+    if (l === 2) {
+      const m = nz(-8, 12), b = R(0, 60), t1 = R(0, 4), t2 = t1 + R(2, 6);
+      if (Math.random() < 0.5) return { q: `The Rainbow Dragon's height is a linear function of time. At <b>${t1} s</b> it is at <b>${m * t1 + b + 100} m</b>, and at <b>${t2} s</b> it is at <b>${m * t2 + b + 100} m</b>. What is the <b>rate of change</b> in meters per second?`, a: num(m), hint: `Rate of change = change in height ÷ change in time.`, explain: `(${m * t2 + b + 100} − ${m * t1 + b + 100}) ÷ (${t2} − ${t1}) = ${fmt(m)} m per second.` };
+      const mA = R(1, 9); let mB; do { mB = R(1, 9); } while (mB === mA);
+      const xs = [0, 1, 2, 3], c = R(-5, 10);
+      return { q: `Which function has the <b>greater rate of change</b>?<br><b>Function A:</b> <i>y</i> = ${lin(mA, R(-9, 9))}<br><b>Function B:</b>${ioTable(xs, xs.map((x) => mB * x + c))}`, a: choiceFixed(['Function A', 'Function B'], mA > mB ? 'Function A' : 'Function B'), hint: `A's rate is the number in front of x. B's rate is how much y changes each time x goes up by 1.`, explain: `A's rate is ${mA}; B's rate is ${mB}. ${mA > mB ? 'A' : 'B'} is greater.` };
+    }
+    const lins = [`<i>y</i> = ${lin(R(2, 9), R(-9, 9))}`, `<i>y</i> = ${fr(X, R(2, 5))}${constTerm(R(1, 9))}`, `${R(2, 6)}${X} + <i>y</i> = ${R(2, 20)}`, `<i>y</i> = ${MINUS}${R(2, 9)}${X}`, `<i>y</i> = ${R(2, 20)}`];
+    const nons = [`<i>y</i> = ${X}<sup>2</sup>${constTerm(nz(-9, 9))}`, `<i>y</i> = ${X}<sup>3</sup>`, `<i>y</i> = ${fr(R(2, 9), X)}`, `<i>y</i> = ${R(2, 5)}<sup>${X}</sup>`, `<i>xy</i> = ${R(2, 20)}`];
+    const non = pick(nons);
+    return { q: `Which equation is <b>NOT</b> a linear function?`, a: choice(non, shuffle(lins).slice(0, 3)), hint: `Linear functions make straight lines: x has power 1, and it isn't in a denominator, an exponent, or multiplied by y.`, explain: `${non} is not linear. Its graph curves.` };
+  };
+
+  // ---- Grade 8: rational & irrational numbers, square-root estimates, repeating decimals (8.NS.1–2)
+  G.g8_irr = (l) => {
+    if (l === 1) {
+      const items = [[`√${pick([4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144])}`, 'Rational'], [`√${pick([2, 3, 5, 6, 7, 8, 10, 11, 12, 15, 20])}`, 'Irrational'], ['π', 'Irrational'], [fr(R(1, 9), R(2, 11)), 'Rational'], [`${MINUS}${R(1, 20)}`, 'Rational'], [`0.${R(1, 9)}${R(1, 9)}`, 'Rational'], [`0.${R(1, 9)}${R(1, 9)}${R(1, 9)}… (the digits repeat)`, 'Rational'], [`√(${fr(pick([1, 4, 9]), pick([16, 25, 49]))})`, 'Rational']];
+      const [s, ans] = pick(items);
+      return { q: `Is this number rational or irrational?${big(s)}`, a: choiceFixed(['Rational', 'Irrational'], ans), hint: `Rational numbers can be written as a fraction of integers. Square roots of non-perfect squares and π are irrational.`, explain: `${s} is ${ans.toLowerCase()}.` };
+    }
+    if (l === 2) {
+      let n; do { n = R(2, 150); } while (Number.isInteger(Math.sqrt(n)) || Math.abs(Math.sqrt(n) * 10 - Math.round(Math.sqrt(n) * 10) - 0.5) < 0.05);
+      const ans = Math.round(Math.sqrt(n) * 10) / 10;
+      return { q: `Estimate <b>√${n}</b> to the nearest <b>tenth</b>.`, a: num(ans), hint: `${Math.floor(Math.sqrt(n)) ** 2} < ${n} < ${Math.ceil(Math.sqrt(n)) ** 2}, so √${n} is between ${Math.floor(Math.sqrt(n))} and ${Math.ceil(Math.sqrt(n))}. Square some decimals in between to get closer.`, explain: `${fmt(rnd(ans - 0.05, 2))}² = ${fmt(rnd((ans - 0.05) ** 2, 4))} and ${fmt(rnd(ans + 0.05, 2))}² = ${fmt(rnd((ans + 0.05) ** 2, 4))}. ${n} is between them, so √${n} ≈ ${ans}.` };
+    }
+    if (Math.random() < 0.5) { const d = R(1, 8); return { q: `Write the repeating decimal as a fraction:${big(`0.${String(d).repeat(4)}…`)}<div class="note">(the ${d} repeats forever)</div>`, a: frac(d, 9), hint: `Let x = 0.${d}${d}${d}… Then 10x = ${d}.${d}${d}${d}… Subtract: 9x = ${d}.`, explain: `9x = ${d}, so x = ${fracHTML(d, 9)}.` }; }
+    let ab; do { ab = R(1, 98); } while (ab % 11 === 0);
+    const s2 = String(ab).padStart(2, '0');
+    return { q: `Write the repeating decimal as a fraction:${big(`0.${s2.repeat(3)}…`)}<div class="note">(the "${s2}" repeats forever)</div>`, a: frac(ab, 99), hint: `Let x = 0.${s2}${s2}… Then 100x = ${ab}.${s2}${s2}… Subtract: 99x = ${ab}.`, explain: `99x = ${ab}, so x = ${fracHTML(ab, 99)}.` };
+  };
+
+  // ---- Grade 8: parallel lines, transversals & exterior angles (8.G.5)
+  G.g8_angles = (l) => {
+    if (l === 1) {
+      const a = R(30, 150), rel = pick([['alternate interior', true], ['corresponding', true], ['alternate exterior', true], ['same-side (consecutive) interior', false]]);
+      return { q: `Two parallel lines are cut by a transversal. One angle is ${deg(a)}. What is its <b>${rel[0]}</b> angle?`, a: num(rel[1] ? a : 180 - a), hint: rel[1] ? `With parallel lines, ${rel[0]} angles are EQUAL.` : `Same-side interior angles are SUPPLEMENTARY (add to 180°).`, explain: rel[1] ? `They're equal: ${a}°.` : `180 − ${a} = ${180 - a}°.` };
+    }
+    if (l === 2) {
+      const a = R(20, 80), b = R(20, 80);
+      if (Math.random() < 0.5) return { q: `A triangle has two interior angles of ${deg(a)} and ${deg(b)}. What is the <b>exterior angle</b> next to the third angle?`, a: num(a + b), hint: `An exterior angle equals the sum of the two remote interior angles.`, explain: `${a} + ${b} = ${a + b}°.` };
+      return { q: `An exterior angle of a triangle is ${deg(a + b)}. One of the remote interior angles is ${deg(a)}. What is the other remote interior angle?`, a: num(b), hint: `Exterior angle = sum of the two remote interior angles.`, explain: `${a + b} − ${a} = ${b}°.` };
+    }
+    const x = R(5, 30);
+    if (Math.random() < 0.5) {
+      let a, c; do { a = R(2, 7); c = R(2, 7); } while (a === c);
+      const b = R(-20, 30), d = a * x + b - c * x, v = a * x + b;
+      if (v <= 10 || v >= 170) return G.g8_angles(l);
+      return { q: `Parallel lines are cut by a transversal. Two <b>alternate interior</b> angles measure ${deg(`(${lin(a, b)})`)} and ${deg(`(${lin(c, d)})`)}. What is ${X}?`, a: num(x), hint: `Alternate interior angles are equal: ${lin(a, b)} = ${lin(c, d)}.`, explain: `${a}x${constTerm(b)} = ${c}x${constTerm(d)} → x = ${x}. (Each angle is ${v}°.)` };
+    }
+    const a = R(2, 6), c = R(1, 5), b = R(-10, 20), d = 180 - (a + c) * x - b, v1 = a * x + b, v2 = c * x + d;
+    if (v1 <= 5 || v2 <= 5) return G.g8_angles(l);
+    return { q: `Parallel lines are cut by a transversal. Two <b>same-side interior</b> angles measure ${deg(`(${lin(a, b)})`)} and ${deg(`(${lin(c, d)})`)}. What is ${X}?`, a: num(x), hint: `Same-side interior angles add up to 180°.`, explain: `${a + c}x${constTerm(b + d)} = 180 → x = ${x}. (Angles: ${v1}° and ${v2}°.)` };
+  };
+
   // ---------- public API ----------
   function generate(topic, level, seen, grade) {
     const g = G[topic];

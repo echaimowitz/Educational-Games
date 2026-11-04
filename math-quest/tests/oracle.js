@@ -87,6 +87,63 @@ function semantic(t, q) {
     const want = /cylinder/.test(text) ? 3.14 * r * r * h : /cone/.test(text) ? (3.14 * r * r * h) / 3 : (4 / 3) * 3.14 * r ** 3;
     return Math.abs(a.value - want) < 0.011;
   }
+  // ---- round 3 topics ----
+  if ((m = text.match(/0\.(\d+)…/)) && /repeating decimal/.test(text)) {
+    const rep = strip(text).match(/the "?(\d+)"? repeats/)[1], want = +rep / (10 ** rep.length - 1);
+    return close(val(a), want, 1e-12);
+  }
+  if (/rational or irrational/.test(text)) {
+    const raw = text.match(/<div class="big">([\s\S]*?)<\/div>$/)[1], s = strip(raw);
+    let rational;
+    if (/π/.test(s)) rational = false;
+    else if (!/frac/.test(raw) && (m = s.match(/^√(\d+)$/))) rational = Number.isInteger(Math.sqrt(+m[1]));
+    else if (/^√/.test(s)) { const n = +raw.match(/class="fn">(\d+)/)[1], d = +raw.match(/class="fd">(\d+)/)[1]; rational = Number.isInteger(Math.sqrt(n)) && Number.isInteger(Math.sqrt(d)); }
+    else rational = true; // integers, terminating or repeating decimals, fractions
+    return correct === (rational ? 'Rational' : 'Irrational');
+  }
+  if ((m = text.match(/Estimate <b>√(\d+)<\/b> to the nearest <b>tenth/))) return a.value === Math.round(Math.sqrt(+m[1]) * 10) / 10;
+  // angle equations: collect the angle expressions in bold and the relationship
+  if (/What is <i>x<\/i>\?/.test(text) && /°/.test(text)) {
+    const angs = [...text.matchAll(/<b>\(?((?:(?!<b>).)*?)\)?°<\/b>/g)].map((x) => x[1]);
+    const evA = (e) => ev(toJS(e), a.value);
+    const vals = angs.map(evA);
+    if (/vertical|alternate interior/.test(text)) return close(vals[0], vals[1]) && vals[0] > 0;
+    if (/complementary/.test(text)) return close(vals[0] + vals[1], 90) && vals.every((v) => v > 0);
+    if (/supplementary|same-side interior/.test(text)) return close(vals[0] + vals[1], 180) && vals.every((v) => v > 0);
+    if (/triangle/.test(text)) return close(vals.reduce((s, v) => s + v, 0), 180) && vals.every((v) => v > 0);
+  }
+  if (/parallel lines are cut/i.test(text) && (m = text.match(/One angle is <b>(\d+)°/))) { const ang = +m[1]; return a.value === (/same-side/.test(text) ? 180 - ang : ang); }
+  if (/exterior angle/.test(text)) { const [p1, p2] = [...text.matchAll(/<b>(\d+)°<\/b>/g)].map((x) => +x[1]); return a.value === (/What is the <b>exterior/.test(text) ? p1 + p2 : p1 - p2); }
+  if (/third angle\?/.test(text)) { const [p1, p2] = [...text.matchAll(/<b>(\d+)°<\/b>/g)].map((x) => +x[1]); return a.value === 180 - p1 - p2; }
+  if (/triangle has angles of <b>/.test(text) && /What kind/.test(text)) { const big = Math.max(...nums(text.match(/angles of <b>([^<]*)<\/b>/)[1])); return correct === (big < 90 ? 'Acute' : big === 90 ? 'Right' : 'Obtuse') + ' triangle'; }
+  if (/triangle has sides of <b>/.test(text)) { const s = nums(text.match(/sides of <b>([^<]*)<\/b>/)[1]), u = new Set(s).size; return correct === (u === 1 ? 'Equilateral' : u === 2 ? 'Isosceles' : 'Scalene'); }
+  // statistics: data list is "a, b, c, and d" before the first '.'
+  const dataList = () => nums(strip(text).split(/scored|parties:|chests:|day:/)[1].split('.')[0]);
+  if (/What is the <b>mean<\/b> score/.test(text)) { const v = dataList(); return close(a.value, v.reduce((s, x) => s + x, 0) / v.length); }
+  if (/royal parties.*<b>median/.test(text)) { const v = dataList().sort((x, y) => x - y), n = v.length; return close(a.value, (v[n / 2 - 1] + v[n / 2]) / 2); }
+  if (/interquartile range/.test(text)) { const v = dataList().sort((x, y) => x - y), med = (u) => (u.length % 2 ? u[(u.length - 1) / 2] : (u[u.length / 2 - 1] + u[u.length / 2]) / 2); return close(a.value, med(v.slice(4)) - med(v.slice(0, 4))); }
+  if (/mean absolute deviation/.test(text)) { const v = dataList(), mean = v.reduce((s, x) => s + x, 0) / v.length; return close(a.value, v.reduce((s, x) => s + Math.abs(x - mean), 0) / v.length); }
+  // functions
+  if (/relation a <b>function/.test(text)) { const pts = [...strip(text).matchAll(/\((−?\d+), (−?\d+)\)/g)].map((x) => [x[1], x[2]]); const byX = {}; let isF = true; pts.forEach(([x, y]) => { if (byX[x] !== undefined && byX[x] !== y) isF = false; byX[x] = y; }); return correct === (isF ? 'Yes' : 'No'); }
+  if ((m = text.match(/At <b>(\d+) s<\/b> it is at <b>(−?\d+) m<\/b>, and at <b>(\d+) s<\/b> it is at <b>(−?\d+) m/))) { const [t1, h1, t2, h2] = [m[1], m[2], m[3], m[4]].map((x) => +x.replace('−', '-')); return close(a.value, (h2 - h1) / (t2 - t1)); }
+  if (/greater rate of change/.test(text)) { const fA = toJS(strip(text.match(/Function A:<\/b>(.*?)<br>/)[1]).split('=')[1]), mA = ev(fA, 1) - ev(fA, 0), ys = [...text.matchAll(/<td>(−?\d+)<\/td>/g)].map((x) => +x[1].replace('−', '-')).slice(4), mB = ys[1] - ys[0]; return correct === (mA > mB ? 'Function A' : 'Function B'); }
+  // volume, money, sampling
+  if ((m = strip(text).match(/(\d+) cubes long, (\d+) cubes wide and (\d+) layers/))) return a.value === m[1] * m[2] * m[3];
+  if ((m = strip(text).match(/base area of (\d+) square cm and a height of (\d+)/))) return a.value === m[1] * m[2];
+  if ((m = strip(text).match(/Part A is (\d+) × (\d+) × (\d+) m and part B is (\d+) × (\d+) × (\d+)/))) return a.value === m[1] * m[2] * m[3] + m[4] * m[5] * m[6];
+  if ((m = strip(text).match(/\$([\d,]+) .*?earns (\d+)% simple interest per year.*? (\d+) year/))) { const P = +m[1].replace(/,/g, ''), I = (P * m[2] * m[3]) / 100; return close(a.value, /total/.test(text) ? P + I : I); }
+  if ((m = strip(text).match(/for \$(\d+) each and marks them up (\d+)%/))) return close(a.value, m[1] * (1 + m[2] / 100));
+  if ((m = strip(text).match(/earns (\d+)% commission\. She sells \$([\d,]+)/))) return close(a.value, (m[1] * +m[2].replace(/,/g, '')) / 100);
+  if ((m = strip(text).match(/guessed there were (\d+) .*actually (\d+)/))) return close(a.value, (Math.abs(m[1] - m[2]) / m[2]) * 100);
+  if ((m = strip(text).match(/sample of (\d+) students, (\d+) said .* school's ([\d,]+) students/))) return close(a.value, (m[2] / m[1]) * +m[3].replace(/,/g, ''));
+  if ((m = strip(text).match(/spins a spinner (\d+) times and lands on red (\d+) times/))) return close(val(a), m[2] / m[1]);
+  if ((m = strip(text).match(/rolled (\d+) times/))) return close(a.value, m[1] / 6);
+  if ((m = strip(text).match(/has (\d+) headbands, (\d+) karate gis and (\d+) belts/))) return a.value === m[1] * m[2] * m[3];
+  if ((m = strip(text).match(/You flip (\d+) fair coins/))) return close(val(a), 1 / 2 ** m[1]);
+  if ((m = strip(text).match(/(\d+) magic pies are shared equally by (\d+)/))) return close(val(a), m[1] / m[2]);
+  if ((m = text.match(/is <b>.*?<\/b> greater than, less than, or equal to <b>(\d+)<\/b>/))) { const f = ev(toJS(text.match(/is <b>(.*?) × \d+<\/b>/)[1])); return correct === (f > 1 ? 'Greater than' : f < 1 ? 'Less than' : 'Equal to') + ' ' + m[1]; }
+  if ((m = strip(text).match(/triangular royal flag has corners at \((−?\d+), (−?\d+)\), \((−?\d+), (−?\d+)\) and \((−?\d+), (−?\d+)\)/))) { const [x1, y1, x2, , , y3] = m.slice(1).map((x) => +x.replace('−', '-')); return close(a.value, (Math.abs(x2 - x1) * Math.abs(y3 - y1)) / 2); }
+  if ((m = strip(text).match(/from \((−?\d+), (−?\d+)\) to \((−?\d+), (−?\d+)\)\?/))) { const [x1, y1, x2, y2] = m.slice(1).map((x) => +x.replace('−', '-')); return a.value === Math.abs(x2 - x1) + Math.abs(y2 - y1); }
   return null;
 }
 
