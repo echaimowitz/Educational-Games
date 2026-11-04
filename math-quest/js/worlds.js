@@ -23,6 +23,9 @@
         { topic: 'g4_angle', name: 'Anglerfish Angles', skill: 'Angles, turns & clock angles', story: 'The anglerfish lights up the deep sea, but only if you measure the angles!', treasure: '🦑', treasureName: 'Squid Buddy' },
         { topic: 'g4_factor', name: 'Factor Fish Families', skill: 'Factors, multiples, prime & composite', story: 'Fish swim in families of factors. Find which numbers belong together!', treasure: '🐟', treasureName: 'Rainbow Minnow' },
         { topic: 'g4_fracmul', name: 'Snack-Time Fractions', skill: 'Multiplying a fraction by a whole number', story: 'Feeding time! Every fish gets a fraction of a snack. How much in all?', treasure: '🦀', treasureName: 'Crabby Pal' },
+        { topic: 'g4_addsub', name: 'Treasure Tally', skill: 'Multi-digit addition & subtraction', story: 'The pirates left piles of gold coins. Add and subtract them up!', treasure: '🪙', treasureName: 'Pirate Coin' },
+        { topic: 'g4_mixed', name: 'Mixed-Number Mermaids', skill: 'Adding & subtracting mixed numbers', story: 'The mermaids measure seaweed in mixed numbers. Help them combine their harvest!', treasure: '🌿', treasureName: 'Magic Seaweed' },
+        { topic: 'g4_shapes', name: 'Starfish Shapes', skill: 'Lines of symmetry & classifying shapes', story: 'Every sea creature has a shape! Find their symmetry and name them.', treasure: '⭐', treasureName: 'Golden Starfish' },
       ],
     },
     {
@@ -41,6 +44,9 @@
         { topic: 'g5_longdiv', name: 'Long Division Lane', skill: 'Multi-digit multiplication & long division', story: 'The unicorn carriages are packed with big numbers. Divide them up fairly!', treasure: '🎠', treasureName: 'Carousel Pony' },
         { topic: 'g5_place', name: 'Decimal Dewdrops', skill: 'Decimal place value, powers of 10 & rounding', story: 'Each dewdrop holds a decimal down to the thousandths. Sort and round them!', treasure: '💧', treasureName: 'Magic Dewdrop' },
         { topic: 'g5_coord', name: 'Rainbow Grid', skill: 'Coordinate plane & number patterns', story: 'The meadow is laid out on a magic grid. Help Sparkle find her way!', treasure: '🗺️', treasureName: 'Meadow Map' },
+        { topic: 'g5_scaling', name: 'Pie Sharing Party', skill: 'Fractions as division, scaling & mixed-number multiplication', story: 'It\'s a unicorn pie party! Share the pies fairly and predict the sizes.', treasure: '🥧', treasureName: 'Rainbow Pie' },
+        { topic: 'g5_volume', name: 'Stable Builders', skill: 'Volume: unit cubes, base × height & combined shapes', story: 'Build new stables for the unicorns. How much space is inside?', treasure: '🧊', treasureName: 'Crystal Cube' },
+        { topic: 'g5_shapes', name: 'Shape Family Tree', skill: 'Classifying shapes by their properties', story: 'Squares, rhombuses, rectangles… Who belongs to which shape family?', treasure: '🔷', treasureName: 'Diamond Gem' },
       ],
     },
     {
@@ -60,6 +66,9 @@
         { topic: 'g6_geo', name: 'Treasury Geometry', skill: 'Area, volume & surface area', story: 'The royal treasury is packed with boxes and banners. Measure them all!', treasure: '💎', treasureName: 'Royal Gem' },
         { topic: 'g6_expr', name: 'Potion Expressions', skill: 'Writing expressions, equivalent expressions & inequalities', story: 'The royal potion book is written in algebra. Translate the recipes!', treasure: '🧪', treasureName: 'Sparkle Potion' },
         { topic: 'g6_dec', name: 'Royal Treasury Decimals', skill: 'Multi-digit decimal operations & long division', story: 'The royal accountant needs exact answers, down to the thousandth!', treasure: '🪙', treasureName: 'Gold Coin' },
+        { topic: 'g6_stats', name: 'Royal Statistics', skill: 'Mean, median, interquartile range & mean absolute deviation', story: 'The royal record-keeper needs help making sense of the kingdom\'s data!', treasure: '📊', treasureName: 'Royal Chart' },
+        { topic: 'g6_eqdec', name: 'Enchanted Equations', skill: 'Equations with fractions & decimals', story: 'The fairy godmother\'s equations have fractions and decimals. Can you solve them?', treasure: '🪄', treasureName: 'Fairy Wand' },
+        { topic: 'g6_poly', name: 'Castle Map Maker', skill: 'Distances & areas on the coordinate plane', story: 'Draw the castle grounds on the royal map, all four quadrants!', treasure: '🏰', treasureName: 'Mini Castle' },
       ],
     },
     {
@@ -78,6 +87,9 @@
         { topic: 'g7_rat', name: 'Yin-Yang Rationals', skill: 'Negative fractions & decimals, repeating decimals', story: 'Balance positives and negatives, like yin and yang!', treasure: '☯️', treasureName: 'Balance Charm' },
         { topic: 'g7_ineq', name: 'Inequality Dojo', skill: 'Solving inequalities (flip the sign!)', story: 'Some answers are a whole range! Solve the inequalities like a true master.', treasure: '🎖️', treasureName: 'Master Medal' },
         { topic: 'g7_scale', name: 'Blueprint Builder', skill: 'Scale drawings, area scaling & volume of prisms', story: 'Sensei is building a new dojo. Read the blueprints!', treasure: '📐', treasureName: 'Golden Ruler' },
+        { topic: 'g7_angles', name: 'Angle Kicks', skill: 'Angle relationships & solving for x', story: 'Every kick has an angle! Use angle rules to write and solve equations.', treasure: '🦶', treasureName: 'Flying Kick Scroll' },
+        { topic: 'g7_money', name: 'Dojo Business', skill: 'Simple interest, markup, commission & percent error', story: 'Sensei is running the dojo shop. Help with the money math!', treasure: '💰', treasureName: 'Dojo Treasure Bag' },
+        { topic: 'g7_sample', name: 'Tournament Predictions', skill: 'Sampling, predictions & experimental probability', story: 'Predict the tournament results using samples and probability!', treasure: '🎯', treasureName: 'Bullseye Target' },
       ],
     },
     {
@@ -96,6 +108,9 @@
         { topic: 'g8_sys', name: 'Twin Star Systems', skill: 'Systems of linear equations', story: 'Two shooting stars cross paths. Find exactly where they meet!', treasure: '✨', treasureName: 'Twin Stardust' },
         { topic: 'g8_vol', name: 'Planet Volumes', skill: 'Volume of cylinders, cones & spheres', story: 'Measure the planets, comets and star jars of the kingdom!', treasure: '🌍', treasureName: 'Mini Planet' },
         { topic: 'g8_trans', name: 'Constellation Moves', skill: 'Translations, reflections, rotations & dilations', story: 'Move the constellations across the sky grid to the right spots!', treasure: '🔭', treasureName: 'Star Telescope' },
+        { topic: 'g8_func', name: 'Function Fountain', skill: 'Functions, rates of change & linear vs. nonlinear', story: 'The magic fountain turns every input into exactly one output. Is it a function?', treasure: '⛲', treasureName: 'Wishing Fountain' },
+        { topic: 'g8_irr', name: 'Infinite Galaxy', skill: 'Rational & irrational numbers, estimating roots, repeating decimals', story: 'Some numbers go on forever without repeating. Explore the infinite galaxy!', treasure: '♾️', treasureName: 'Infinity Gem' },
+        { topic: 'g8_angles', name: 'Parallel Starbeams', skill: 'Parallel lines, transversals & exterior angles', story: 'Starbeams shoot across parallel paths. Use angle rules to steer them!', treasure: '🌌', treasureName: 'Milky Way Swirl' },
       ],
     },
 
