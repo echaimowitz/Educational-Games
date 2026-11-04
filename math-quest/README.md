@@ -8,15 +8,15 @@ Open `index.html` in any web browser (double-click it). Nothing needs to be inst
 
 To play on an iPad or share a link, host it free with **GitHub Pages**: in the repo go to *Settings → Pages*, choose the branch and `/ (root)`, and the game will be at `https://<your-username>.github.io/Educational-Games/math-quest/`.
 
-## Main worlds (one per grade)
+## Main worlds (one per grade, 8–9 missions each, plus a boss)
 
 | Grade | World | Missions | Boss |
 |---|---|---|---|
-| 4 | 🐠 Rainbow Reef | Rounding & place value · Multi-digit multiplication · Division with remainders · Fractions · Word problems · **Decimals (tenths/hundredths)** · **Angles** | 🐙 Grumpy Kraken |
-| 5 | 🦄 Unicorn Meadows | Decimals · Adding/subtracting unlike fractions · Multiplying/dividing fractions · Order of operations · Word problems | ⛈️ Thundercloud Troll |
-| 6 | 👑 Enchanted Castle | Ratios & rates · Percents · Dividing fractions · Equations, exponents, GCF/LCM · Word problems · **Negative numbers & the coordinate plane** · **Area, volume & surface area** | 🧙‍♀️ Wicked Sorceress |
-| 7 | 🥋 Karate Dojo | Integers · Two-step equations · Proportions, tax, discounts, percent change · Probability, circles, angles · Word problems | 🥷 Shadow Ninja |
-| 8 | 🌟 Starlight Kingdom | Multi-step equations · Slope & linear functions · Exponents & scientific notation · Pythagorean theorem & roots · Word problems | 🐉 Rainbow Dragon |
+| 4 | 🐠 Rainbow Reef | Place value & rounding · Multi-digit multiplication · Division with remainders · Fractions · Word problems · Decimals (tenths/hundredths) · Angles · Factors, multiples & primes · Fraction × whole number | 🐙 Grumpy Kraken |
+| 5 | 🦄 Unicorn Meadows | Decimal operations · Adding/subtracting unlike fractions · Multiplying/dividing fractions · Order of operations · Word problems · Long division · Decimal place value & rounding · Coordinate plane & patterns | ⛈️ Thundercloud Troll |
+| 6 | 👑 Enchanted Castle | Ratios & rates · Percents · Dividing fractions · Equations, exponents, GCF/LCM · Word problems · Negative numbers & coordinate plane · Area, volume & surface area · Expressions & inequalities · Multi-digit decimals | 🧙‍♀️ Wicked Sorceress |
+| 7 | 🥋 Karate Dojo | Integers · Two-step equations · Proportions & percents · Probability, circles, angles · Word problems · Rational numbers · Inequalities · Scale drawings & prisms | 🥷 Shadow Ninja |
+| 8 | 🌟 Starlight Kingdom | Multi-step equations · Slope & linear functions · Exponents & scientific notation · Pythagorean theorem · Word problems · Systems of equations · Volume (cylinders, cones, spheres) · Transformations | 🐉 Rainbow Dragon |
 
 ## Bonus worlds (always open, matched to the player's grade)
 
@@ -29,14 +29,14 @@ To play on an iPad or share a link, host it free with **GitHub Pages**: in the r
 
 ## Competition modes
 
-- **📅 Daily Challenge:** 10 new questions every day at the player's grade, from warm-up to expert, including 2 from the bonus worlds. Everyone in the same grade gets the same questions. There are no hints, and the clock pauses while feedback is shown. The first try counts on the **family scoreboard**, ranked by correct answers and then by time. Daily streaks earn bonus gems.
+- **📅 Daily Challenge:** 12 new questions every day at the player's grade, from warm-up to expert, including 2 from the bonus worlds. Everyone in the same grade gets the same questions. There are no hints, and the clock pauses while feedback is shown. The first try counts on the **family scoreboard**, ranked by correct answers and then by time. Daily streaks earn bonus gems.
 - **🏁 Race Mode:** two players race on one screen, side by side, or stacked on a phone. Each player answers at their own grade, so a 4th grader and a 6th grader can race fairly. A wrong answer freezes the player for 3 seconds and shows the right answer. The first to 5, 10 or 15 correct wins. A head-to-head record is kept between players.
 
 ## What makes it challenging
 
 - **Adaptive levels:** 🌱 Warm-up → 🔥 Tricky → ⚡ Expert. Three correct answers in a row raise the level, and two misses in a row lower it. The level is saved for each skill.
-- **Stars:** ★ = 5/8 correct, ★★ = 7/8, ★★★ = 7/8 *and* reaching Expert.
-- **Bosses:** questions mix every skill in the world, each answer is timed, and the player has 3 hearts. Beating a main boss unlocks the next world.
+- **Missions** have 10 questions. **Stars:** ★ = 6/10 correct, ★★ = 8/10, ★★★ = 8/10 *and* reaching Expert.
+- **Bosses** take 12 hits to defeat. Their questions mix every skill in the world, each answer is timed, and the player has 3 hearts. Beating a main boss unlocks the next world.
 - **Hints** cost 2 💎, and every answer comes with a step-by-step explanation.
 - **Rewards:** gems, treasures, an avatar shop and 18 badges.
 
@@ -59,4 +59,5 @@ Progress is saved in the browser (`localStorage`) on each device.
 - `js/questions.js`: question generators for every topic and level, plus answer checking (accepts fractions, mixed numbers, decimals, negatives). Bonus-world generators also take the player's grade.
 - `js/worlds.js`: worlds, missions, story and bosses
 - `js/game.js`: screens, profiles, missions, bosses, daily challenge, race mode, shop and badges
-- `tests/check-questions.js`: run `node math-quest/tests/check-questions.js` to generate about 100,000 questions and verify each one's answer is accepted
+- `tests/check-questions.js`: run `node math-quest/tests/check-questions.js` to generate about 120,000 questions and confirm each is well-formed and its answer is accepted
+- `tests/oracle.js`: run `node math-quest/tests/oracle.js` for an **independent math check**. It reads each question as the kid sees it, recomputes the answer from scratch (evaluating expressions, plugging solutions back into equations, rounding by digits, checking factors, inequalities, systems and transformations), and compares it with the answer key. Word problems and data questions are checked by hand.
