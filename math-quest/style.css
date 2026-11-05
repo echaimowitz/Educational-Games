@@ -300,3 +300,10 @@ table.io th { background: #f1e9ff; font-size: 16px; }
 #storage-warning { position: fixed; left: 0; right: 0; bottom: 0; z-index: 70; background: #b3261e; color: #fff; padding: 10px 16px; text-align: center; font-size: 15px; }
 @media (max-width: 560px) { .save-btn:not(.icon) { padding: 8px 10px; font-size: 0; } .save-btn:not(.icon)::before { content: '💾'; font-size: 18px; } }
 #restore-file, .form input[type="file"] { display: none !important; }
+
+/* ---------- take-turns race ---------- */
+.mode-pick .chip { flex: 1 1 220px; }
+.pen { color: #d62828; font-weight: 700; }
+.countdown { position: fixed; inset: 0; z-index: 45; display: flex; align-items: center; justify-content: center; background: rgba(30,10,60,.55); }
+.countdown span { font-size: 160px; font-weight: 700; color: #fff; text-shadow: 0 6px 30px rgba(0,0,0,.4); animation: pop .5s ease-out; }
+.race-setup .side h3 { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
