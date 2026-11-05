@@ -56,7 +56,58 @@
     AVATARS.filter((a) => a.cost === 0).forEach((a) => { if (!p.owned.includes(a.e)) p.owned.push(a.e); });
     return p;
   }
-  function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(store)); } catch (e) { /* storage unavailable: play continues unsaved */ } }
+  let saveFailed = false, lastSaved = null;
+  function save() {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(store));
+      lastSaved = Date.now();
+      if (saveFailed) { saveFailed = false; storageBanner(); }
+      return true;
+    } catch (e) {
+      if (!saveFailed) { saveFailed = true; storageBanner(); }
+      return false;
+    }
+  }
+  function storageWorks() {
+    try { localStorage.setItem('mq_test', '1'); const ok = localStorage.getItem('mq_test') === '1'; localStorage.removeItem('mq_test'); return ok; } catch (e) { return false; }
+  }
+  // A banner that stays on screen whenever this browser refuses to save (e.g. Private Browsing).
+  function storageBanner() {
+    let b = document.getElementById('storage-warning');
+    if (!saveFailed) { if (b) b.remove(); return; }
+    if (!b) { b = document.createElement('div'); b.id = 'storage-warning'; document.body.appendChild(b); }
+    b.innerHTML = '⚠️ <b>This browser is not saving progress</b> (Private Browsing may be on). Grown-ups: turn off Private Browsing, or use ⚙️ For Grown-ups → Backups.';
+  }
+  // Ask the browser not to clear our saved data when space is low (supported in most modern browsers).
+  function requestPersist() { try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) { /* not supported */ } }
+
+  // ---- resume an unfinished mission / boss battle / daily challenge after the app was closed ----
+  const RESUMABLE = ['mission', 'boss', 'daily'];
+  function saveSession() {
+    if (!S || !RESUMABLE.includes(S.mode)) return;
+    store.resume = { pid: store.current, date: dateKey(), at: Date.now(), s: Object.assign({}, S, { seen: [...S.seen], anim: '', deadline: null }) };
+  }
+  function clearSession() { delete store.resume; }
+  function resumeInfo(p) {
+    const r = store.resume;
+    if (!p || !r || r.pid !== p.id || !r.s) return null;
+    if (r.s.mode === 'daily' && r.date !== dateKey()) return null; // yesterday's daily can't be finished today
+    return r;
+  }
+  function resumeLabel(r) {
+    const s = r.s, w = WORLDS[s.wi];
+    if (s.mode === 'mission') return `Mission: <b>${w.missions[s.mi].name}</b> (${w.name}) · question ${Math.min(s.idx + 1, Q_PER_MISSION)} of ${Q_PER_MISSION}`;
+    if (s.mode === 'boss') return `Boss battle: <b>${w.boss.name}</b> ${w.boss.emoji} · ${s.hp} hits to go, ${'❤️'.repeat(s.hearts)}`;
+    return `<b>Daily Challenge</b> · question ${Math.min(s.idx + 1, DAILY_COUNT)} of ${DAILY_COUNT}`;
+  }
+  function resumeSession() {
+    const r = resumeInfo(P());
+    if (!r) return renderMap();
+    S = Object.assign({}, r.s, { seen: new Set(r.s.seen), qStart: Date.now() });
+    renderPlay();
+    if (!S.answered && S.timeSecs) startTimer();
+    if (S.mode === 'daily' && !swId) swId = setInterval(updateStopwatch, 500);
+  }
   const P = () => store.profiles.find((p) => p.id === store.current);
   const byId = (id) => store.profiles.find((p) => p.id === id);
 
@@ -171,7 +222,7 @@
     return `<div class="topbar">
       ${back ? `<button class="btn ghost" data-act="${back}">⬅ Back</button>` : `<button class="btn ghost" data-act="profiles">👥 Players</button>`}
       <div class="who"><span class="avatar sm">${p.avatar}</span> ${esc(p.name)}</div>
-      <div class="gems">💎 ${p.gems}</div>
+      <div class="topbar-right"><button class="btn ghost save-btn" data-act="save" title="Save my progress">💾 Save</button><div class="gems">💎 ${p.gems}</div></div>
     </div>`;
   }
 
@@ -234,8 +285,11 @@
     screen = 'map';
     const p = P();
     const today = p.daily.log[dateKey()];
+    const r = resumeInfo(p);
     show(`${topbar(p)}
       <h1 class="title sm">🗺️ The Realms</h1>
+      ${r ? `<div class="card resume"><div>▶️ <b>Welcome back! You have an unfinished game:</b><br>${resumeLabel(r)}</div>
+        <div class="menu-row"><button class="btn primary big" data-act="resume">Continue ▶</button><button class="btn ghost" data-act="discard-resume">Start fresh</button></div></div>` : ''}
       ${rainbowBar(p)}
       <div class="feature-row">
         <button class="card feature daily ${today ? 'done' : ''}" data-act="daily"><span class="fe">📅</span><span><b>Daily Challenge</b>${today ? `Done today: ${today.correct}/${DAILY_COUNT} ✅` : `${DAILY_COUNT} new questions today! Win bonus 💎`}${p.daily.streak > 1 ? `<br><span class="streak">🔥 ${p.daily.streak}-day streak</span>` : ''}</span></button>
@@ -332,7 +386,8 @@
     });
   }
   function startDaily() {
-    const p = P();
+    const p = P(), r = resumeInfo(p);
+    if (r && r.s.mode === 'daily') return resumeSession();
     S = { mode: 'daily', wi: gradeWorld(p.grade), grade: p.grade, list: buildDaily(p.grade), idx: 0, correct: 0, results: [], elapsed: 0, practice: !!p.daily.log[dateKey()], gemsEarned: 0, seen: new Set() };
     nextQuestion();
   }
@@ -355,6 +410,7 @@
       else if (S.mode === 'mission' && S.timed) S.timeSecs = S.timed;
       if (store.settings.timer === 'relaxed') S.timeSecs *= 2;
     }
+    saveSession(); save();
     renderPlay();
     if (S.timeSecs) startTimer();
     if (S.mode === 'daily' && !swId) swId = setInterval(updateStopwatch, 500);
@@ -415,7 +471,7 @@
     const right = S.mode === 'daily' ? `<div class="stopwatch" id="stopwatch">⏱ ${mmss(dailyElapsed())}</div>` : `<div class="gems">💎 ${p.gems}</div>`;
     const meta = S.mode === 'boss' ? `Round ${S.count}` : `${S.mode === 'daily' ? '📅 Daily · ' : ''}Question ${Math.min(S.idx + 1, total)} of ${total}`;
     app.innerHTML = `<div class="screen ${w.theme} play">${deco(w.theme)}<div class="wrap">
-      <div class="topbar"><button class="btn ghost" data-act="quit">✖ Quit</button>${progress || '<span></span>'}${right}</div>
+      <div class="topbar"><button class="btn ghost" data-act="quit">✖ Quit</button>${progress || '<span></span>'}<div class="topbar-right"><button class="btn ghost save-btn icon" data-act="save" title="Save my progress">💾</button>${right}</div></div>
       ${bossHead}${timerBar}
       <div class="qcard card">
         <div class="qmeta"><span class="lvl-tag l${S.lvl}">${lvl.icon} ${lvl.name}</span><span>${meta}</span></div>
@@ -493,6 +549,7 @@
       S.results[S.idx] = ok; if (ok) S.correct++; S.idx++;
       if (ok) confetti(WORLDS[S.wi].deco, 14);
     }
+    saveSession();
     save();
     renderPlay();
   }
@@ -501,7 +558,7 @@
     const p = P();
     if (!S || S.mode === 'daily' || S.hintShown || S.answered || p.gems < HINT_COST) return;
     p.gems -= HINT_COST; S.hints++; S.hintShown = true;
-    save();
+    saveSession(); save();
     renderPlay();
   }
 
@@ -519,7 +576,7 @@
     if (stars === 3 && S.hints === 0) award(p, 'nohint3');
     if (Object.values(p.levels).filter((x) => x === 3).length >= 5) award(p, 'expert5');
     if (w.missions.every((_, mi) => starsOf(p, S.wi, mi) === 3)) award(p, 'world3');
-    save();
+    clearSession(); save();
     screen = 'results';
     if (stars) { sfx.win(); confetti(['⭐', '🌈', ...w.deco]); }
     const nextUn = S.mi < last && missionUnlocked(p, S.wi, S.mi + 1);
@@ -566,7 +623,7 @@
         <p class="note">You hit the boss ${BOSS_HP - S.hp} out of ${BOSS_HP} times. Practicing missions makes you stronger!</p>
         <div class="menu-row"><button class="btn danger" data-act="boss" data-arg="${S.wi}">🔁 Rematch</button><button class="btn" data-act="world" data-arg="${S.wi}">🗺️ World</button></div>`;
     }
-    save();
+    clearSession(); save();
     show(`${topbar(p, 'world:' + S.wi)}<div class="card results">${html}</div>`, w.theme);
   }
 
@@ -622,7 +679,7 @@
       if (p.daily.streak >= 7) award(p, 'dstreak7');
       html = `<p class="score">💎 +${gems} <small>(includes 🔥 streak bonus +${streakBonus})</small></p><p class="streak">🔥 ${p.daily.streak}-day streak!</p>`;
     } else html = '<p class="note">Practice round. Your scoreboard result stays the same.</p>';
-    save();
+    clearSession(); save();
     screen = 'results';
     sfx.win(); confetti(['📅', '⭐', '🌈']);
     show(`${topbar(p, 'map')}
@@ -804,6 +861,53 @@
       <div class="grid badges">${BADGES.map((b) => { const has = p.badges.includes(b.id); return `<div class="card badge ${has ? '' : 'missing'}"><span class="avatar">${has ? b.e : '🔒'}</span><b>${b.name}</b><small>${b.desc}</small></div>`; }).join('')}</div>`);
   }
 
+  // ---------------- BACKUPS ----------------
+  function exportData() { saveSession(); return { app: 'math-quest', version: 1, saved: new Date().toISOString(), store }; }
+  function encodeCode() { return 'MQ1:' + btoa(unescape(encodeURIComponent(JSON.stringify(exportData())))); }
+  function markBackedUp() { store.lastBackup = Date.now(); save(); }
+  function downloadBackup() {
+    try {
+      const blob = new Blob([JSON.stringify(exportData())], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `math-quest-backup-${dateKey()}.json`;
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+      markBackedUp();
+      toast('⬇️ <b>Backup downloaded!</b><br>Keep the file somewhere safe (Files, Downloads, or email it to yourself).');
+      if (screen === 'settings') renderSettings();
+    } catch (e) { toast('Download didn\'t work here. Try “Copy save code” instead.'); }
+  }
+  function copyCode() {
+    const code = encodeCode();
+    const done = () => { markBackedUp(); toast('📋 <b>Save code copied!</b><br>Paste it into Notes or a message to keep it safe.'); if (screen === 'settings') renderSettings(); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(done, () => { prompt('Copy this save code and keep it somewhere safe:', code); done(); });
+    else { prompt('Copy this save code and keep it somewhere safe:', code); done(); }
+  }
+  function restoreFrom(text) {
+    let data;
+    try {
+      const t = text.trim();
+      data = JSON.parse(t.startsWith('MQ1:') ? decodeURIComponent(escape(atob(t.slice(4)))) : t);
+      if (data && data.store) data = data.store;
+      if (!data || !Array.isArray(data.profiles)) throw new Error('no players');
+    } catch (e) { alert('Sorry, that is not a Math Quest backup (or it got cut off). Nothing was changed.'); return false; }
+    const names = data.profiles.map((p) => p.name).join(', ') || 'no players';
+    if (!confirm(`Restore this backup? Players: ${names}.\n\nPlayers in the backup replace the same players on this device. Other players on this device are kept.`)) return false;
+    data.profiles.forEach((bp) => {
+      normalize(bp);
+      const i = store.profiles.findIndex((p) => p.id === bp.id);
+      if (i >= 0) store.profiles[i] = bp; else store.profiles.push(bp);
+    });
+    store.h2h = Object.assign({}, store.h2h, data.h2h || {});
+    if (data.resume && data.profiles.some((p) => p.id === data.resume.pid)) store.resume = data.resume;
+    store.current = null;
+    const ok = save();
+    renderProfiles();
+    toast(ok ? `✅ <b>Backup restored!</b><br>Welcome back, ${esc(names)}!` : '⚠️ Restored for now, but this browser is not saving. Turn off Private Browsing.');
+    return true;
+  }
+
   // ---------------- GROWN-UPS ----------------
   function renderSettings() {
     screen = 'settings';
@@ -820,6 +924,15 @@
         <div class="label">Timers (bosses & speed missions)</div>
         <div class="grade-pick">${[['normal', '⏱️ Normal'], ['relaxed', '🐢 Relaxed (2× time)'], ['off', '🚫 Off']].map(([k, v]) => `<button class="chip ${st.timer === k ? 'sel' : ''}" data-act="set-timer" data-arg="${k}">${v}</button>`).join('')}</div>
         <div class="label">Players (tap a grade to change it; bonus worlds and the daily challenge follow it)</div>${prof}
+        <div class="label">💾 Saving & backups</div>
+        <div class="backup-box">
+          <p>${storageWorks() ? '✅ This browser is saving progress automatically (after every answer, and whenever the app is closed).' : '⚠️ <b>This browser is NOT saving progress.</b> Private Browsing is probably on. Turn it off, then reload.'}
+          ${store.lastBackup ? `<br>Last backup: <b>${new Date(store.lastBackup).toLocaleDateString()}</b>.` : '<br><b>No backup made yet.</b>'}</p>
+          <p class="note">Browsers can sometimes clear saved website data. On iPad/iPhone, a game opened from a <b>Home Screen icon</b> keeps its saves separately from the same game opened in a Safari tab, so always open it the same way. A backup lets you restore everything, even on another device.</p>
+          <div class="menu-row"><button class="btn primary" data-act="backup-download">⬇️ Download backup file</button><button class="btn" data-act="backup-restore-file">⬆️ Restore from file</button></div>
+          <div class="menu-row"><button class="btn" data-act="backup-copy">📋 Copy save code</button><button class="btn" data-act="backup-paste">📥 Paste save code</button></div>
+          <input type="file" id="restore-file" accept=".json,application/json,text/plain" hidden>
+        </div>
         <div class="label">How it works</div>
         <ul class="rules">
           <li>Each main world matches a grade (based on Common Core topics), with missions and a boss. Bonus worlds are always open and adapt to the player's grade.</li>
@@ -868,9 +981,19 @@
       case 'next': return nextQuestion();
       case 'quit': {
         const what = S.mode === 'boss' ? 'battle' : S.mode === 'daily' ? 'daily challenge (you can start it again from the beginning)' : 'mission';
-        if (confirm(`Leave now? Progress in this ${what} will be lost (gems you earned are kept).`)) { const wi = S.wi, mode = S.mode; S = null; stopAll(); if (mode === 'daily') renderDailyIntro(); else renderWorld(wi); }
+        if (confirm(`Leave now? Progress in this ${what} will be lost (gems you earned are kept).`)) { const wi = S.wi, mode = S.mode; S = null; stopAll(); clearSession(); save(); if (mode === 'daily') renderDailyIntro(); else renderWorld(wi); }
         return;
       }
+      case 'save': {
+        saveSession(); const ok = save(); requestPersist();
+        return toast(ok ? '💾 <b>Saved!</b><br>Your progress also saves by itself after every answer.' : '⚠️ <b>Could not save</b> in this browser.<br>Ask a grown-up to make a backup.');
+      }
+      case 'resume': return resumeSession();
+      case 'discard-resume': if (confirm('Start fresh? Your unfinished game will be thrown away (stars and gems you already earned are kept).')) { clearSession(); save(); } return renderMap();
+      case 'backup-download': return downloadBackup();
+      case 'backup-restore-file': { const f = document.getElementById('restore-file'); if (f) { f.value = ''; f.click(); } return; }
+      case 'backup-copy': return copyCode();
+      case 'backup-paste': { const code = prompt('Paste the save code here:'); if (code) restoreFrom(code.trim()); return; }
       case 'race-setup': return renderRaceSetup();
       case 'race-pick': { const [i, id] = arg.split('|'); raceDraft.sides[+i].pid = id; const pr = byId(id); if (pr) raceDraft.sides[+i].wi = gradeWorld(pr.grade); return renderRaceSetup(); }
       case 'race-world': { const [i, wi] = arg.split('|'); raceDraft.sides[+i].wi = +wi; return renderRaceSetup(); }
@@ -936,9 +1059,24 @@
     else if (e.key.toLowerCase() === 'h') { useHint(); }
   });
 
+  // Save the moment the app is hidden, switched away from, or closed.
+  const flush = () => { saveSession(); save(); };
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+  window.addEventListener('pagehide', flush);
+  window.addEventListener('beforeunload', flush);
+  document.addEventListener('change', (e) => {
+    if (e.target && e.target.id === 'restore-file' && e.target.files && e.target.files[0]) {
+      const reader = new FileReader();
+      reader.onload = () => restoreFrom(String(reader.result));
+      reader.readAsText(e.target.files[0]);
+    }
+  });
+
   // used by automated play-tests to read the current question
-  MQ._debug = { session: () => S, race: () => RC, store: () => store, withCommas };
+  MQ._debug = { session: () => S, race: () => RC, store: () => store, withCommas, exportCode: () => encodeCode(), restoreFrom };
 
   // start
+  requestPersist();
+  if (!storageWorks()) { saveFailed = true; storageBanner(); }
   if (P()) renderMap(); else renderProfiles();
 })();
