@@ -51,7 +51,14 @@ The ⚙️ *For Grown-ups* button on the player screen lets you:
 - see each player's accuracy, daily-challenge count and race record
 - delete a profile
 
-Progress is saved in the browser (`localStorage`) on each device.
+### Saving & backups
+
+- Progress saves **automatically** after every answer and whenever the app is closed or switched away from. There is also a **💾 Save** button on every screen.
+- An **unfinished mission, boss battle or daily challenge** is remembered. Reopen the game and tap **Continue ▶** on the map.
+- Saves live in the browser on each device. Browsers can occasionally clear website data, and on iPad/iPhone a Home Screen icon keeps separate saves from a Safari tab. Grown-ups can protect progress in **⚙️ For Grown-ups → Saving & backups**:
+  - **Download backup file** or **Copy save code** (paste it into Notes or a message).
+  - **Restore from file** or **Paste save code** on any device. Players in the backup replace the same players, and other players are kept.
+- If a browser can't save at all (for example, with Private Browsing on), a red warning bar appears.
 
 ## Files
 
