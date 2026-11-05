@@ -243,7 +243,7 @@
         <button class="profile card new" data-act="new-profile"><span class="avatar">➕</span><span class="pname">New Player</span></button>
       </div>
       <div class="feature-row">
-        <button class="card feature race" data-act="race-setup"><span class="fe">🏁</span><span><b>Race Mode</b>Two players, one screen. First to the finish wins!</span></button>
+        <button class="card feature race" data-act="race-setup"><span class="fe">🏁</span><span><b>Race Mode</b>Take turns against the stopwatch. Fastest wins!</span></button>
         <button class="card feature daily" data-act="daily-board"><span class="fe">📅</span><span><b>Today's Scores</b>See who's winning the Daily Challenge</span></button>
       </div>
       <div class="center"><button class="btn ghost" data-act="settings">⚙️ For Grown-ups</button></div>`);
@@ -293,7 +293,7 @@
       ${rainbowBar(p)}
       <div class="feature-row">
         <button class="card feature daily ${today ? 'done' : ''}" data-act="daily"><span class="fe">📅</span><span><b>Daily Challenge</b>${today ? `Done today: ${today.correct}/${DAILY_COUNT} ✅` : `${DAILY_COUNT} new questions today! Win bonus 💎`}${p.daily.streak > 1 ? `<br><span class="streak">🔥 ${p.daily.streak}-day streak</span>` : ''}</span></button>
-        <button class="card feature race" data-act="race-setup"><span class="fe">🏁</span><span><b>Race a Friend</b>Head-to-head on one screen${p.races.played ? `<br>🏆 ${p.races.wins} wins` : ''}</span></button>
+        <button class="card feature race" data-act="race-setup"><span class="fe">🏁</span><span><b>Race a Friend</b>Take turns, fastest time wins${p.races.played ? `<br>🏆 ${p.races.wins} wins` : ''}</span></button>
       </div>
       <div class="menu-row">
         <button class="btn" data-act="treasures">🎁 Treasures</button>
