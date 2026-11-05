@@ -6,7 +6,7 @@
 
   const SAVE_KEY = 'mathquest.v1';
   const Q_PER_MISSION = 10, BOSS_HP = 12, HEARTS = 3, HINT_COST = 2, START_GEMS = 10;
-  const DAILY_COUNT = 12, FREEZE_MS = 3000;
+  const DAILY_COUNT = 12, FREEZE_MS = 3000, TURN_PENALTY_MS = 5000, MAX_TURN_PLAYERS = 4;
   const MAIN_IDX = WORLDS.map((w, i) => (w.bonus ? -1 : i)).filter((i) => i >= 0);
   const BONUS_IDX = WORLDS.map((w, i) => (w.bonus ? i : -1)).filter((i) => i >= 0);
   const LAST_MAIN = MAIN_IDX[MAIN_IDX.length - 1];
@@ -396,7 +396,9 @@
     if ((S.mode === 'mission' && S.idx >= Q_PER_MISSION)) return finishMission();
     if (S.mode === 'daily' && S.idx >= DAILY_COUNT) return finishDaily();
     if (S.mode === 'boss' && (S.hp <= 0 || S.hearts <= 0)) return finishBoss();
+    if (S.mode === 'turn' && S.idx >= S.total) return finishTurn();
     if (S.mode === 'daily') { S.q = S.list[S.idx]; S.lvl = S.q.level; }
+    else if (S.mode === 'turn') { const t = pick(S.topics.filter((x) => x !== S.lastTopic)); S.lastTopic = t; S.q = Q.generate(t, S.lvl, S.seen, S.grade); }
     else {
       let topic = S.topic;
       if (S.mode === 'boss') { const opts = S.topics.filter((t) => t !== S.lastTopic); topic = pick(opts); S.lastTopic = topic; S.count++; }
@@ -413,7 +415,7 @@
     saveSession(); save();
     renderPlay();
     if (S.timeSecs) startTimer();
-    if (S.mode === 'daily' && !swId) swId = setInterval(updateStopwatch, 500);
+    if ((S.mode === 'daily' || S.mode === 'turn') && !swId) swId = setInterval(updateStopwatch, S.mode === 'turn' ? 100 : 500);
   }
 
   function startTimer() {
@@ -431,12 +433,17 @@
     if (left <= 0) { stopTimer(); record(false, true); }
   }
   function dailyElapsed() { return S.elapsed + (S.answered ? 0 : Date.now() - S.qStart); }
-  function updateStopwatch() { const el = document.getElementById('stopwatch'); if (el && S && S.mode === 'daily') el.textContent = '⏱ ' + mmss(dailyElapsed()); }
+  const fmtTenths = (ms) => { const t = Math.floor(ms / 100), m = Math.floor(t / 600), sec = Math.floor((t % 600) / 10); return `${m}:${String(sec).padStart(2, '0')}.${t % 10}`; };
+  function stopwatchText() {
+    if (S.mode === 'turn') return `⏱ ${fmtTenths(dailyElapsed())}${S.misses ? ` <span class="pen">+${(S.misses * TURN_PENALTY_MS) / 1000}s</span>` : ''}`;
+    return '⏱ ' + mmss(dailyElapsed());
+  }
+  function updateStopwatch() { const el = document.getElementById('stopwatch'); if (el && S && (S.mode === 'daily' || S.mode === 'turn')) el.innerHTML = stopwatchText(); }
 
   function renderPlay() {
     screen = 'play';
     const p = P(), w = WORLDS[S.wi], q = S.q, a = q.a;
-    const total = S.mode === 'daily' ? DAILY_COUNT : Q_PER_MISSION;
+    const total = S.mode === 'daily' ? DAILY_COUNT : S.mode === 'turn' ? S.total : Q_PER_MISSION;
     let progress = '', bossHead = '';
     if (S.mode !== 'boss') {
       progress = `<div class="progress">${Array.from({ length: total }, (_, i) => `<span class="dot ${S.results[i] === true ? 'ok' : S.results[i] === false ? 'bad' : i === S.idx ? 'now' : ''}"></span>`).join('')}</div>`;
@@ -455,7 +462,7 @@
     if (S.answered) {
       const ok = S.lastOk;
       controls = `<div class="feedback ${ok ? 'good' : 'bad'}">
-        <div class="fb-title">${ok ? `✅ ${pick(w.cheers)}${S.lastGems ? ` <span class="plus">+${S.lastGems} 💎</span>` : ''}` : S.timedOut ? '⏰ Time\'s up!' : '❌ Not quite!'}</div>
+        <div class="fb-title">${ok ? `✅ ${pick(w.cheers)}${S.lastGems ? ` <span class="plus">+${S.lastGems} 💎</span>` : ''}` : S.timedOut ? '⏰ Time\'s up!' : S.mode === 'turn' ? `❌ Not quite! <span class="pen">+${TURN_PENALTY_MS / 1000} seconds</span>` : '❌ Not quite!'}</div>
         ${ok ? '' : `<div class="fb-answer">Answer: <b>${Q.answerHTML(a)}</b></div><div class="fb-explain">${q.explain}</div>`}
         ${S.levelMsg ? `<div class="fb-level">${S.levelMsg}</div>` : ''}
         <button class="btn big primary" data-act="next" id="next-btn">Next ➜</button>
@@ -467,9 +474,9 @@
       controls = `<div class="answer-box"><span id="answer-display">${showInput(S.input) || '<span class="ph">type your answer</span>'}</span></div>
         <div class="keypad">${keys.map((k) => `<button class="key-btn ${k === '✓' ? 'go' : ''} ${k === 'space' ? 'small' : ''}" data-act="key" data-arg="${k}">${k === 'space' ? 'space<small>2 1/3</small>' : k}</button>`).join('')}</div>`;
     }
-    const canHint = S.mode !== 'daily' && !S.hintShown && !S.answered;
-    const right = S.mode === 'daily' ? `<div class="stopwatch" id="stopwatch">⏱ ${mmss(dailyElapsed())}</div>` : `<div class="gems">💎 ${p.gems}</div>`;
-    const meta = S.mode === 'boss' ? `Round ${S.count}` : `${S.mode === 'daily' ? '📅 Daily · ' : ''}Question ${Math.min(S.idx + 1, total)} of ${total}`;
+    const canHint = S.mode !== 'daily' && S.mode !== 'turn' && !S.hintShown && !S.answered;
+    const right = S.mode === 'daily' || S.mode === 'turn' ? `<div class="stopwatch" id="stopwatch">${stopwatchText()}</div>` : `<div class="gems">💎 ${p.gems}</div>`;
+    const meta = S.mode === 'boss' ? `Round ${S.count}` : S.mode === 'turn' ? `🏁 ${S.who.avatar} ${esc(S.who.name)}'s turn · Question ${Math.min(S.idx + 1, total)} of ${total}` : `${S.mode === 'daily' ? '📅 Daily · ' : ''}Question ${Math.min(S.idx + 1, total)} of ${total}`;
     app.innerHTML = `<div class="screen ${w.theme} play">${deco(w.theme)}<div class="wrap">
       <div class="topbar"><button class="btn ghost" data-act="quit">✖ Quit</button>${progress || '<span></span>'}<div class="topbar-right"><button class="btn ghost save-btn icon" data-act="save" title="Save my progress">💾</button>${right}</div></div>
       ${bossHead}${timerBar}
@@ -520,20 +527,22 @@
   }
 
   function record(ok, timedOut) {
-    const p = P();
+    const p = S.mode === 'turn' ? S.who.profile : P(), noGems = S.mode === 'daily' || S.mode === 'turn';
     stopTimer();
-    if (S.mode === 'daily') S.elapsed += Date.now() - S.qStart;
+    if (S.mode === 'daily' || S.mode === 'turn') S.elapsed += Date.now() - S.qStart;
     S.answered = true; S.lastOk = ok; S.timedOut = timedOut; S.lastGems = 0;
-    p.stats.answered++;
+    if (p) p.stats.answered++;
     if (ok) {
-      p.stats.correct++; p.stats.streak++;
-      p.stats.bestStreak = Math.max(p.stats.bestStreak, p.stats.streak);
-      if (p.stats.streak >= 10) award(p, 'streak10');
-      if (p.stats.streak >= 25) award(p, 'streak25');
-      if (S.mode !== 'daily') { S.lastGems = S.lvl; S.gemsEarned += S.lvl; addGems(p, S.lvl); }
+      if (p) {
+        p.stats.correct++; p.stats.streak++;
+        p.stats.bestStreak = Math.max(p.stats.bestStreak, p.stats.streak);
+        if (p.stats.streak >= 10) award(p, 'streak10');
+        if (p.stats.streak >= 25) award(p, 'streak25');
+      }
+      if (!noGems) { S.lastGems = S.lvl; S.gemsEarned += S.lvl; addGems(p, S.lvl); }
       sfx.good();
-    } else { p.stats.streak = 0; sfx.bad(); }
-    if (S.mode !== 'daily') {
+    } else { if (p) p.stats.streak = 0; sfx.bad(); if (S.mode === 'turn') S.misses++; }
+    if (!noGems) {
       if (ok) {
         if (S.lvl === 3) S.reachedHard = true;
         S.run++; S.miss = 0;
@@ -551,6 +560,13 @@
     }
     saveSession();
     save();
+    if (S.mode === 'turn') {
+      if (ok) return nextQuestion(); // correct: straight on to the next question, clock keeps going
+      const qid = S.idx;               // wrong: show the answer (clock paused), then carry on automatically
+      renderPlay();
+      setTimeout(() => { if (S && S.mode === 'turn' && S.answered && S.idx === qid && screen === 'play') nextQuestion(); }, 2500);
+      return;
+    }
     renderPlay();
   }
 
@@ -694,39 +710,56 @@
   }
 
   // ---------------- RACE ----------------
-  const GUESTS = [{ id: 'guest0', name: 'Guest', avatar: '🙂' }, { id: 'guest1', name: 'Guest 2', avatar: '😎' }];
+  const GUESTS = [{ id: 'guest0', name: 'Guest', avatar: '🙂' }, { id: 'guest1', name: 'Guest 2', avatar: '😎' }, { id: 'guest2', name: 'Guest 3', avatar: '🤠' }, { id: 'guest3', name: 'Guest 4', avatar: '🥳' }];
   let raceDraft = null;
+  const guestFor = (id) => GUESTS.find((g) => g.id === id);
+  function freeGuest(sides) { return GUESTS.find((g) => !sides.some((s) => s.pid === g.id)); }
   function defaultRaceDraft() {
-    const ps = store.profiles;
-    const a = P() || ps[0], b = ps.find((x) => a && x.id !== a.id);
-    const side = (pr, gi) => (pr ? { pid: pr.id, wi: gradeWorld(pr.grade) } : { pid: GUESTS[gi].id, wi: MAIN_IDX[0] });
-    return { sides: [side(a, 0), side(b, 1)], target: 10 };
+    const ps = store.profiles, cur = P();
+    const order = cur ? [cur, ...ps.filter((x) => x.id !== cur.id)] : ps.slice();
+    const sides = order.slice(0, MAX_TURN_PLAYERS).map((pr) => ({ pid: pr.id, wi: gradeWorld(pr.grade) }));
+    while (sides.length < 2) sides.push({ pid: freeGuest(sides).id, wi: MAIN_IDX[0] });
+    return { mode: 'turns', sides, target: 10, lvl: 2 };
   }
-  function racerInfo(side, i) {
-    const pr = byId(side.pid);
-    return pr ? { name: pr.name, avatar: pr.avatar, profile: pr } : { name: GUESTS[i].name, avatar: GUESTS[i].avatar, profile: null };
+  function racerInfo(side) {
+    const pr = byId(side.pid), g = guestFor(side.pid);
+    return pr ? { name: pr.name, avatar: pr.avatar, profile: pr } : { name: g.name, avatar: g.avatar, profile: null };
   }
   function renderRaceSetup() {
     screen = 'race-setup';
     raceDraft = raceDraft || defaultRaceDraft();
+    const d = raceDraft, turns = d.mode === 'turns';
+    if (!turns) { d.sides = d.sides.slice(0, 2); while (d.sides.length < 2) d.sides.push({ pid: freeGuest(d.sides).id, wi: MAIN_IDX[0] }); }
+    const colors = ['🩷', '💙', '💚', '💛'];
     const sideHTML = (i) => {
-      const s = raceDraft.sides[i], other = raceDraft.sides[1 - i];
-      const opts = [...store.profiles.map((p) => ({ id: p.id, label: `${p.avatar} ${esc(p.name)}` })), { id: GUESTS[i].id, label: `${GUESTS[i].avatar} ${GUESTS[i].name}` }];
-      return `<div class="side"><h3>${i === 0 ? '🩷 Player 1 (left)' : '💙 Player 2 (right)'}</h3>
-        <div class="grade-pick">${opts.map((o) => `<button class="chip ${s.pid === o.id ? 'sel' : ''}" data-act="race-pick" data-arg="${i}|${o.id}" ${other.pid === o.id ? 'disabled' : ''}>${o.label}</button>`).join('')}</div>
+      const s = d.sides[i], taken = (id) => d.sides.some((o, j) => j !== i && o.pid === id);
+      const guest = s.pid.startsWith('guest') ? guestFor(s.pid) : freeGuest(d.sides);
+      const opts = [...store.profiles.map((p) => ({ id: p.id, label: `${p.avatar} ${esc(p.name)}` })), ...(guest ? [{ id: guest.id, label: `${guest.avatar} ${guest.name}` }] : [])];
+      const title = turns ? `${colors[i]} Player ${i + 1}${i === 0 ? ' (goes first)' : ''}` : (i === 0 ? '🩷 Player 1 (left)' : '💙 Player 2 (right)');
+      return `<div class="side"><h3>${title}${turns && d.sides.length > 1 ? ` <button class="btn sm ghost" data-act="race-remove" data-arg="${i}">✖ Remove</button>` : ''}</h3>
+        <div class="grade-pick">${opts.map((o) => `<button class="chip ${s.pid === o.id ? 'sel' : ''}" data-act="race-pick" data-arg="${i}|${o.id}" ${taken(o.id) ? 'disabled' : ''}>${o.label}</button>`).join('')}</div>
         <div class="label">Questions from</div>
         <div class="grade-pick">${MAIN_IDX.map((wi) => `<button class="chip ${s.wi === wi ? 'sel' : ''}" data-act="race-world" data-arg="${i}|${wi}">Grade ${WORLDS[wi].grade}<small>${WORLDS[wi].emoji} ${WORLDS[wi].name}</small></button>`).join('')}</div></div>`;
     };
-    const ids = raceDraft.sides.map((s) => s.pid), h = h2hRecord(ids[0], ids[1]);
+    const ids = d.sides.map((s) => s.pid), h = d.sides.length === 2 ? h2hRecord(ids[0], ids[1]) : '';
     show(`<div class="topbar"><button class="btn ghost" data-act="${P() ? 'map' : 'profiles'}">⬅ Back</button></div>
       <div class="card form race-setup">
         <h2>🏁 Race Mode</h2>
-        <p class="note">Two players share one screen. Each player answers questions from their own grade, so it's fair! A wrong answer freezes you for 3 seconds ❄️ and shows the right answer.</p>
-        ${sideHTML(0)}${sideHTML(1)}
-        <div class="label">Race to</div>
-        <div class="grade-pick">${[5, 10, 15].map((n) => `<button class="chip ${raceDraft.target === n ? 'sel' : ''}" data-act="race-target" data-arg="${n}">${n} correct</button>`).join('')}</div>
+        <div class="grade-pick mode-pick">
+          <button class="chip ${turns ? 'sel' : ''}" data-act="race-mode" data-arg="turns">🔁 Take turns<small>One at a time with a stopwatch, fastest wins</small></button>
+          <button class="chip ${!turns ? 'sel' : ''}" data-act="race-mode" data-arg="side">👯 Side by side<small>2 players on one screen at once</small></button>
+        </div>
+        <p class="note">${turns
+          ? `Each player gets their own turn on the device. The stopwatch runs while you answer. A wrong answer adds <b>+${TURN_PENALTY_MS / 1000} seconds</b> and shows the right answer (the clock pauses while you read it). <b>Fastest total time wins!</b> Each player gets questions from their own grade. Play alone to beat your personal best.`
+          : 'Two players share one screen. Each player answers questions from their own grade, so it\'s fair! A wrong answer freezes you for 3 seconds ❄️ and shows the right answer.'}</p>
+        ${d.sides.map((_, i) => sideHTML(i)).join('')}
+        ${turns && d.sides.length < MAX_TURN_PLAYERS ? '<div class="center"><button class="btn" data-act="race-add">➕ Add a player</button></div>' : ''}
+        <div class="label">${turns ? 'Questions per player' : 'Race to'}</div>
+        <div class="grade-pick">${[5, 10, 15].map((n) => `<button class="chip ${d.target === n ? 'sel' : ''}" data-act="race-target" data-arg="${n}">${n} ${turns ? 'questions' : 'correct'}</button>`).join('')}</div>
+        ${turns ? `<div class="label">Difficulty (same for everyone)</div>
+        <div class="grade-pick">${[1, 2, 3].map((l) => `<button class="chip ${d.lvl === l ? 'sel' : ''}" data-act="race-lvl" data-arg="${l}">${LEVELS[l].icon} ${LEVELS[l].name}</button>`).join('')}</div>` : ''}
         ${h ? `<p class="h2h">Head-to-head: ${h}</p>` : ''}
-        <button class="btn big primary" data-act="race-start">Ready, set, GO! 🏁</button>
+        <button class="btn big primary" data-act="race-start">${turns ? (d.sides.length === 1 ? 'Start my time trial! ⏱️' : 'Let\'s race! 🏁') : 'Ready, set, GO! 🏁'}</button>
       </div>`);
   }
   function h2hKey(a, b) { return [a, b].sort().join('|'); }
@@ -739,11 +772,103 @@
   }
   function raceTopics(wi) { return WORLDS[wi].missions.map((m) => m.topic).filter((t) => !t.endsWith('_word')); }
 
+  // ---- Take turns: one player at a time, stopwatch, fastest total wins ----
+  let TR = null;
+  const bestKey = (pl) => `${pl.wi}|${TR.n}|${TR.lvl}`;
+  function startTurnRace() {
+    const d = raceDraft;
+    TR = { n: d.target, lvl: d.lvl, cur: 0, players: d.sides.map((s) => Object.assign(racerInfo(s), { pid: s.pid, wi: s.wi, grade: WORLDS[s.wi].grade, done: false })) };
+    renderTurnReady();
+  }
+  function turnBoard(highlight) {
+    const done = TR.players.filter((p) => p.done).slice().sort((a, b) => a.total - b.total);
+    if (!done.length) return '';
+    const medals = ['🥇', '🥈', '🥉', '4️⃣'];
+    return `<table class="board">${done.map((p, i) => `<tr class="${p === highlight ? 'me' : ''}"><td class="rank">${TR.players.filter((x) => x.done).length === TR.players.length ? medals[i] : i + 1}</td><td>${p.avatar} <b>${esc(p.name)}</b> <small>Gr ${p.grade}</small></td><td>⏱ ${fmtTenths(p.time)}</td><td>${p.misses ? `❌ +${(p.misses * TURN_PENALTY_MS) / 1000}s` : '✅ no misses'}</td><td><b>${fmtTenths(p.total)}</b></td></tr>`).join('')}</table>`;
+  }
+  function renderTurnReady() {
+    screen = 'turn-ready';
+    const pl = TR.players[TR.cur], w = WORLDS[pl.wi], best = pl.profile && (pl.profile.races.best || {})[bestKey(pl)];
+    const prev = TR.players[TR.cur - 1];
+    show(`<div class="topbar"><button class="btn ghost" data-act="turn-quit">✖ Stop race</button><b class="on-bg">🏁 Turn ${TR.cur + 1} of ${TR.players.length}</b><span></span></div>
+      <div class="card intro">
+        ${prev ? `<p class="score">${prev.avatar} ${esc(prev.name)} finished in <b>${fmtTenths(prev.total)}</b>!</p>` : ''}
+        <div class="intro-emoji boss-bob">${pl.avatar}</div>
+        <h2>${TR.players.length > 1 ? `Pass the device to <b>${esc(pl.name)}</b>!` : `${esc(pl.name)}'s time trial`}</h2>
+        <p>${TR.n} questions · Grade ${pl.grade} · ${LEVELS[TR.lvl].icon} ${LEVELS[TR.lvl].name} · ${w.emoji} ${w.name}</p>
+        <p class="note">The stopwatch starts after the countdown. Wrong answers add +${TURN_PENALTY_MS / 1000} seconds.${best ? ` Your best: <b>${fmtTenths(best)}</b>.` : ''}</p>
+        <button class="btn big primary" data-act="turn-go">I'm ready! GO ▶</button>
+        ${turnBoard() ? `<h3>Times so far</h3>${turnBoard()}` : ''}
+      </div>`, w.theme);
+  }
+  function turnCountdown() {
+    if (screen !== 'turn-ready') return;
+    screen = 'turn-countdown';
+    const ov = document.createElement('div');
+    ov.className = 'countdown';
+    app.querySelector('.screen').appendChild(ov);
+    const steps = ['3', '2', '1', 'GO!'];
+    let i = 0;
+    const step = () => {
+      if (screen !== 'turn-countdown') return ov.remove();
+      if (i < steps.length) { ov.innerHTML = `<span>${steps[i]}</span>`; tone([i < 3 ? 600 : 1000], 0.15); i++; setTimeout(step, i === steps.length ? 500 : 800); }
+      else { ov.remove(); startTurn(); }
+    };
+    step();
+  }
+  function startTurn() {
+    const pl = TR.players[TR.cur];
+    S = { mode: 'turn', who: pl, wi: pl.wi, grade: pl.grade, topics: raceTopics(pl.wi), lvl: TR.lvl, total: TR.n, idx: 0, correct: 0, results: [], elapsed: 0, misses: 0, seen: new Set(), lastTopic: null, gemsEarned: 0 };
+    nextQuestion();
+  }
+  function finishTurn() {
+    const pl = TR.players[TR.cur];
+    Object.assign(pl, { done: true, time: S.elapsed, misses: S.misses, correct: S.correct, total: S.elapsed + S.misses * TURN_PENALTY_MS });
+    S = null;
+    if (swId) { clearInterval(swId); swId = null; }
+    sfx.win();
+    TR.cur++;
+    if (TR.cur < TR.players.length) return renderTurnReady();
+    renderTurnResults();
+  }
+  function renderTurnResults() {
+    screen = 'turn-results';
+    const ranked = TR.players.slice().sort((a, b) => a.total - b.total), win = ranked[0], multi = ranked.length > 1;
+    const tie = multi && ranked[1].total === win.total;
+    const notes = [];
+    ranked.forEach((pl) => {
+      const p = pl.profile;
+      if (!p) return;
+      p.races.best = p.races.best || {};
+      const k = bestKey(pl), old = p.races.best[k];
+      if (!old || pl.total < old) { p.races.best[k] = pl.total; if (old) notes.push(`🎉 New personal best for ${esc(pl.name)}! (was ${fmtTenths(old)})`); }
+      if (multi) { p.races.played++; addGems(p, pl === win && !tie ? 15 : 5); }
+      else addGems(p, 3);
+    });
+    if (multi && !tie && win.profile) {
+      win.profile.races.wins++; award(win.profile, 'race1'); if (win.profile.races.wins >= 10) award(win.profile, 'race10');
+      ranked.slice(1).forEach((pl) => { if (!pl.profile) return; const k = h2hKey(win.pid, pl.pid); store.h2h[k] = store.h2h[k] || {}; store.h2h[k][win.pid] = (store.h2h[k][win.pid] || 0) + 1; });
+    }
+    save();
+    confetti([win.avatar, '🏁', '⭐', '🌈'], 60);
+    const h = ranked.length === 2 ? h2hRecord(TR.players[0].pid, TR.players[1].pid) : '';
+    show(`<div class="topbar"><button class="btn ghost" data-act="${P() ? 'map' : 'profiles'}">🏠 Done</button><span></span><span></span></div>
+      <div class="card results">
+        <div class="intro-emoji">${win.avatar}🏆</div>
+        <h2>${!multi ? `${esc(win.name)} finished in ${fmtTenths(win.total)}!` : tie ? 'It\'s a tie!' : `${esc(win.name)} is the fastest!`}</h2>
+        ${turnBoard(win)}
+        ${notes.map((n) => `<p class="streak">${n}</p>`).join('')}
+        <p class="note">${multi ? 'Winner +15 💎 · everyone else +5 💎 (for saved players).' : '+3 💎 for finishing.'} Final time = stopwatch + ${TURN_PENALTY_MS / 1000}s per wrong answer.</p>
+        ${h ? `<p class="h2h">Head-to-head: ${h}</p>` : ''}
+        <div class="menu-row"><button class="btn primary" data-act="race-start">🔁 Race again</button><button class="btn" data-act="race-setup">⚙️ Change setup</button></div>
+      </div>`);
+  }
+
   function startRace() {
     const d = raceDraft;
     RC = {
       target: d.target, over: false, started: Date.now(),
-      pl: d.sides.map((s, i) => Object.assign(racerInfo(s, i), { pid: s.pid, wi: s.wi, grade: WORLDS[s.wi].grade, lvl: 1, run: 0, miss: 0, score: 0, input: '', q: null, frozenUntil: 0, seen: new Set(), last: null, msg: '' })),
+      pl: d.sides.slice(0, 2).map((s) => Object.assign(racerInfo(s), { pid: s.pid, wi: s.wi, grade: WORLDS[s.wi].grade, lvl: 1, run: 0, miss: 0, score: 0, input: '', q: null, frozenUntil: 0, seen: new Set(), last: null, msg: '' })),
     };
     screen = 'race';
     show(`<div class="topbar"><button class="btn ghost" data-act="race-quit">✖ Quit</button><b class="on-bg">🏁 Race to ${RC.target}!</b><span></span></div>
@@ -980,6 +1105,7 @@
       case 'hint': return useHint();
       case 'next': return nextQuestion();
       case 'quit': {
+        if (S && S.mode === 'turn') return route('turn-quit');
         const what = S.mode === 'boss' ? 'battle' : S.mode === 'daily' ? 'daily challenge (you can start it again from the beginning)' : 'mission';
         if (confirm(`Leave now? Progress in this ${what} will be lost (gems you earned are kept).`)) { const wi = S.wi, mode = S.mode; S = null; stopAll(); clearSession(); save(); if (mode === 'daily') renderDailyIntro(); else renderWorld(wi); }
         return;
@@ -996,9 +1122,15 @@
       case 'backup-paste': { const code = prompt('Paste the save code here:'); if (code) restoreFrom(code.trim()); return; }
       case 'race-setup': return renderRaceSetup();
       case 'race-pick': { const [i, id] = arg.split('|'); raceDraft.sides[+i].pid = id; const pr = byId(id); if (pr) raceDraft.sides[+i].wi = gradeWorld(pr.grade); return renderRaceSetup(); }
+      case 'race-mode': raceDraft.mode = arg; return renderRaceSetup();
+      case 'race-lvl': raceDraft.lvl = +arg; return renderRaceSetup();
+      case 'race-add': { const used = raceDraft.sides.map((x) => x.pid), pr = store.profiles.find((x) => !used.includes(x.id)); raceDraft.sides.push(pr ? { pid: pr.id, wi: gradeWorld(pr.grade) } : { pid: freeGuest(raceDraft.sides).id, wi: MAIN_IDX[0] }); return renderRaceSetup(); }
+      case 'race-remove': raceDraft.sides.splice(+arg, 1); return renderRaceSetup();
+      case 'turn-go': return turnCountdown();
+      case 'turn-quit': if (confirm('Stop this race? The times so far will be lost.')) { TR = null; S = null; stopAll(); renderRaceSetup(); } return;
       case 'race-world': { const [i, wi] = arg.split('|'); raceDraft.sides[+i].wi = +wi; return renderRaceSetup(); }
       case 'race-target': raceDraft.target = +arg; return renderRaceSetup();
-      case 'race-start': if (!raceDraft) raceDraft = defaultRaceDraft(); return startRace();
+      case 'race-start': if (!raceDraft) raceDraft = defaultRaceDraft(); return raceDraft.mode === 'side' ? startRace() : startTurnRace();
       case 'race-quit': if (confirm('Stop the race?')) { RC = null; stopAll(); renderRaceSetup(); } return;
       case 'treasures': return renderTreasures();
       case 'shop': return renderShop();
@@ -1073,7 +1205,7 @@
   });
 
   // used by automated play-tests to read the current question
-  MQ._debug = { session: () => S, race: () => RC, store: () => store, withCommas, exportCode: () => encodeCode(), restoreFrom };
+  MQ._debug = { session: () => S, race: () => RC, turns: () => TR, store: () => store, withCommas, exportCode: () => encodeCode(), restoreFrom };
 
   // start
   requestPersist();

@@ -30,7 +30,8 @@ To play on an iPad or share a link, host it free with **GitHub Pages**: in the r
 ## Competition modes
 
 - **📅 Daily Challenge:** 12 new questions every day at the player's grade, from warm-up to expert, including 2 from the bonus worlds. Everyone in the same grade gets the same questions. There are no hints, and the clock pauses while feedback is shown. The first try counts on the **family scoreboard**, ranked by correct answers and then by time. Daily streaks earn bonus gems.
-- **🏁 Race Mode:** two players race on one screen, side by side, or stacked on a phone. Each player answers at their own grade, so a 4th grader and a 6th grader can race fairly. A wrong answer freezes the player for 3 seconds and shows the right answer. The first to 5, 10 or 15 correct wins. A head-to-head record is kept between players.
+- **🏁 Race Mode: 🔁 Take turns** (default): 1–4 players take turns on one device. A "pass the device" screen and a 3-2-1 countdown start each turn. A stopwatch times the player's 5, 10 or 15 questions, and each wrong answer adds **+5 seconds** (the clock pauses while the correct answer is shown). **Fastest total time wins.** Each player gets questions from their own grade at the difficulty chosen for the race. Personal-best times are saved, and one player alone makes a time trial.
+- **🏁 Race Mode: 👯 Side by side:** two players race on one screen at the same time. A wrong answer freezes the player for 3 seconds. The first to 5, 10 or 15 correct wins. Both race styles keep a head-to-head record.
 
 ## What makes it challenging
 
