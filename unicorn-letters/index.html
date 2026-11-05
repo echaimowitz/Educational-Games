@@ -216,6 +216,29 @@ h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;letter-spaci
 .tile.wrong{animation:wiggle .45s}
 .tile.hint{animation:glow 1s ease-in-out infinite}
 
+/* balloons */
+.field{position:relative;flex:1;width:100%;max-width:1000px;margin:0 auto;min-height:260px}
+.balloon{position:absolute;width:clamp(92px,14vmin,132px);height:clamp(110px,17vmin,158px);border-radius:50% 50% 47% 47% / 55% 55% 45% 45%;
+  background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.75) 0 12%,transparent 13%),var(--bc,#ff9ec7);
+  box-shadow:inset -10px -12px 0 rgba(0,0,0,.07);font-size:clamp(54px,9vmin,82px);font-weight:700;color:var(--ink);
+  display:grid;place-items:center;padding-bottom:8px;animation:bob 3s ease-in-out infinite;transform-origin:50% 100%}
+.balloon::after{content:"";position:absolute;left:50%;bottom:-34px;width:2px;height:34px;background:rgba(107,74,138,.45)}
+.balloon::before{content:"";position:absolute;left:50%;bottom:-6px;margin-left:-7px;border:7px solid transparent;border-bottom-color:var(--bc,#ff9ec7);border-top:0}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-14px) rotate(2deg)}}
+.balloon.popped{animation:popb .35s forwards;pointer-events:none}
+@keyframes popb{0%{transform:scale(1)}50%{transform:scale(1.35)}100%{transform:scale(1.6);opacity:0}}
+.balloon.wrong{animation:wiggle .45s;opacity:.5}
+.balloon.hint{animation:glow 1s ease-in-out infinite}
+/* memory */
+.mem{display:grid;gap:2.4vmin;justify-content:center;align-content:center;flex:1}
+.card{width:clamp(96px,17vmin,160px);height:clamp(118px,21vmin,196px);border-radius:26px;font-weight:700;font-size:clamp(60px,11vmin,104px);
+  display:grid;place-items:center;padding-bottom:8px;background:linear-gradient(145deg,#c9b8ff,#ffb3d9);box-shadow:0 8px 0 var(--lav-deep);color:#fff;transition:transform .15s}
+.card .back{font-size:.55em;filter:drop-shadow(0 2px 0 rgba(0,0,0,.1))}
+.card.up{background:#fff;color:var(--ink);box-shadow:0 8px 0 var(--card-edge);animation:flip .25s}
+.card.done{background:#d8f7e9;box-shadow:0 8px 0 var(--mint-deep);pointer-events:none}
+@keyframes flip{0%{transform:scaleX(.1)}100%{transform:scaleX(1)}}
+.games{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))!important;max-width:1060px!important}
+
 /* ---------- wardrobe ---------- */
 #wardrobe .wr-main{flex:1;display:grid;grid-template-columns:1fr 1.2fr;gap:3vmin;min-height:0;align-items:center}
 #wardrobe .wr-uni{display:flex;justify-content:center}
@@ -422,7 +445,7 @@ h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;letter-spaci
     <div class="psec">
       <h3>How the game works</h3>
       <p>Letters come in phonics order (s, a, t, p, then i, n, m, d…), the order many reading programs use. This lets her start building real words like <b>sat</b>, <b>pin</b> and <b>map</b> early.</p>
-      <p>Each land has four games: Find the Letter (by name), Big &amp; Little (matching cases), Letter Sounds (first sounds of words), and Rainbow Trace. 6 stars in a land opens the next one. Word Rainbow opens after Cloud Castle and teaches sounding out short words.</p>
+      <p>Each land has seven games: Find the Letter (by name), Balloon Pop (find every matching letter), Big &amp; Little (matching cases), Memory Match (flip cards to pair big and little), Letter Sounds (first sounds of words), Sound Detective (hear a sound, pick the letter, no picture), and Rainbow Trace. 6 stars in a land opens the next one. Word Rainbow opens after Cloud Castle: Build Words (spell by sounds) and Read &amp; Match (read a word on her own, pick its picture).</p>
       <p>A rainbow color is only earned for a <b>first-try</b> right answer. If she guesses wrong, she still has to find the right one, but no color, and that letter comes back later. Wrong taps pause the buttons briefly so tapping everything doesn't work. Tracing has to stay on the letter.</p><p>Stars: 3 for a perfect rainbow, 2 for one or two misses, 1 otherwise. A sticker needs 2 or more stars. Stars unlock new looks for her unicorn. After 3 misses in a row, the game drops to 2 choices until she gets one right.</p>
     </div>
     <div class="psec">
@@ -466,10 +489,18 @@ const UNLOCK_STARS=6;
 
 const GAMES=[
   {id:'find',  name:'Find the Letter', icon:'🔎'},
+  {id:'pop',   name:'Balloon Pop',     icon:'🎈'},
   {id:'match', name:'Big & Little',    icon:'🦄'},
+  {id:'memory',name:'Memory Match',    icon:'🃏'},
   {id:'sound', name:'Letter Sounds',   icon:'🍎'},
+  {id:'listen',name:'Sound Detective', icon:'👂'},
   {id:'trace', name:'Rainbow Trace',   icon:'🖍️'},
 ];
+const WORD_GAMES=[
+  {id:'words',best:'build',name:'Build Words', icon:'🧱'},
+  {id:'read', best:'read', name:'Read & Match',icon:'📖'},
+];
+const BALLOON_COLORS=['#ff9ec7','#ffc078','#ffe066','#8ce99a','#74c0fc','#b197fc','#ffa8a8'];
 
 const NAMES={a:'A',b:'bee',c:'see',d:'dee',e:'ee',f:'eff',g:'gee',h:'aitch',i:'eye',j:'jay',k:'kay',l:'ell',m:'em',n:'en',o:'oh',p:'pee',q:'cue',r:'are',s:'ess',t:'tee',u:'you',v:'vee',w:'double you',x:'ex',y:'why',z:'zee'};
 const SOUNDS={a:'ah',b:'buh',c:'kuh',d:'duh',e:'eh',f:'fff',g:'guh',h:'huh',i:'ih',j:'juh',k:'kuh',l:'lll',m:'mmm',n:'nnn',o:'aw',p:'puh',q:'kwuh',r:'rrr',s:'sss',t:'tuh',u:'uh',v:'vvv',w:'wuh',x:'ks',y:'yuh',z:'zzz'};
@@ -691,12 +722,21 @@ function renderMap(){
   });
   const open=wordsUnlocked();
   const w=document.createElement('button');w.className='land'+(open?'':' locked');w.style.setProperty('--land',WORD_LAND.color);
-  const wb=(S.best.words||{}).build||0;
+  const wbest=S.best.words||{};const wb=WORD_GAMES.reduce((t,g)=>t+(wbest[g.best]||0),0),wmax=WORD_GAMES.length*3;
   w.innerHTML=`<div class="lico">${WORD_LAND.icon}</div><div class="lname">${WORD_LAND.name}</div><div class="lletters">cat · map · sun</div>
-    <div class="lstars">Sound out real words! ${wb?'★ '+wb+' / 3':''}</div><div class="meter"><i style="width:${Math.round(wb/3*100)}%"></i></div>
+    <div class="lstars">Read real words! ★ ${wb} / ${wmax}</div><div class="meter"><i style="width:${Math.round(wb/wmax*100)}%"></i></div>
     ${open?'':`<div class="lockbadge">🔒 Earn ${UNLOCK_STARS} ★ in Cloud Castle</div>`}`;
-  w.onclick=()=>{if(!open){sfx.wrong();say('Word Rainbow opens after Cloud Castle. Keep going!');return;}sfx.tap();startRound('words',-1);};
+  w.onclick=()=>{if(!open){sfx.wrong();say('Word Rainbow opens after Cloud Castle. Keep going!');return;}sfx.tap();openWordLand();};
   el.appendChild(w);
+}
+function openWordLand(){
+  $('#landName').textContent=WORD_LAND.name;
+  $('#landLetters').textContent='cat · map · sun';
+  const g=$('#games');g.innerHTML='';const best=S.best.words||{};
+  WORD_GAMES.forEach(G=>{const n=best[G.best]||0;const b=document.createElement('button');b.className='game-card';
+    b.innerHTML=`<div class="gico">${G.icon}</div><div class="gname">${G.name}</div><div class="gstars">${[0,1,2].map(k=>`<span class="${k<n?'':'off'}">⭐</span>`).join('')}</div>`;
+    b.onclick=()=>{sfx.tap();startRound(G.id,-1);};g.appendChild(b);});
+  show('land');say('Word Rainbow! Let\'s read some words.');
 }
 let landIdx=0;
 function openLand(i){
@@ -747,8 +787,9 @@ function distractors(target,n){
 }
 const nChoices=()=>R.streakMiss>=3?2:(S.four||R.land>=2)?4:3;
 
+const memPairs=land=>(S.four||land>=2)?4:3;
 function startRound(game,land){
-  R={game,land,i:0,n:game==='trace'?4:game==='words'?5:7,mistakes:0,missedQs:0,qMiss:0,streakMiss:0,locked:false,last:null,traceList:null,retry:[],sinceRetry:0,cur:null,readyAt:0,cool:false};
+  R={game,land,i:0,n:({trace:4,words:5,pop:5,read:6,memory:2*memPairs(land)})[game]||7,mistakes:0,missedQs:0,qMiss:0,streakMiss:0,locked:false,last:null,traceList:null,retry:[],sinceRetry:0,cur:null,readyAt:0,cool:false};
   $('#gameUni').innerHTML=unicornSVG(S.look);
   drawMeter(0);
   show('game');
@@ -762,13 +803,13 @@ function drawMeter(done){
 $('#hearBtn').addEventListener('click',()=>{if(R&&R.speak)R.speak();});
 $('#quitBtn').addEventListener('click',()=>{if(window.speechSynthesis)speechSynthesis.cancel();
   const fromLand=R?R.land:-1;R=null;
-  if(fromLand>=0)openLand(fromLand);else show('map');});
+  if(fromLand>=0)openLand(fromLand);else openWordLand();});
 
 function next(){
   if(!R)return;
   R.qMiss=0;R.locked=false;R.cool=false;R.readyAt=performance.now()+800;
   const area=$('#playArea');area.className='choices';area.classList.remove('cooling');area.style.flexDirection='';area.innerHTML='';
-  ({find:qFind,match:qMatch,sound:qSound,trace:qTrace,words:qWords})[R.game]();
+  ({find:qFind,match:qMatch,sound:qSound,trace:qTrace,words:qWords,pop:qPop,memory:qMemory,listen:qListen,read:qRead})[R.game]();
 }
 function makeChoice(html,cls,onTap){
   const b=document.createElement('button');b.className='choice '+(cls||'');b.innerHTML=html;
@@ -866,6 +907,104 @@ function qSound(){
       else wrong(btn,k,`That's ${w2}. ${w2} starts with ${SOUNDS[o]}.`,right);
     });el.setAttribute('aria-label',w2);if(o===b)right=el;});
   }
+}
+/* ---------- Balloon pop ---------- */
+function qPop(){
+  const [b,up]=chooseTarget(true);const k=mkey(b,up),ch=up?U(b):b;
+  const total=innerWidth<700?6:8,targets=3;
+  bubble(`<div>Pop every ${caseWord(up)} <span id="hid">?</span></div>`);
+  R.speak=()=>say(`Pop every ${letterSay(b,up)}! Find all the ${letterSay(b,up)} balloons.`);R.speak();
+  const ds=distractors(b,Math.max(2,nChoices()-1));
+  const letters=shuffle([...Array(targets).fill(b),...Array.from({length:total-targets},(_,i)=>ds[i%ds.length])]);
+  const area=$('#playArea');area.className='field';
+  const cols=total/2;let left=targets;
+  letters.forEach((o,i)=>{
+    const el=document.createElement('button');el.className='balloon';el.textContent=up?U(o):o;
+    const c=i%cols,r=Math.floor(i/cols);
+    el.style.left=`calc(${(c+.5)/cols*100}% - clamp(46px,7vmin,66px) + ${rnd(30)-15}px)`;
+    el.style.top=`calc(${r?52:6}% + ${rnd(24)}px)`;
+    el.style.setProperty('--bc',BALLOON_COLORS[(i+rnd(3))%BALLOON_COLORS.length]);
+    el.style.animationDelay=`-${(Math.random()*3).toFixed(2)}s`;
+    el.onclick=e=>{
+      if(!canTap())return;
+      if(o===b){
+        el.classList.add('popped');tone(1400,0,.06,'square',.08);tone(700,.03,.12,'sine',.1);
+        sparkleAt(e.clientX,e.clientY,'💥');left--;
+        if(left===0){$('#hid').textContent=ch;correct(null,e,k,`You popped every ${letterSay(b,up)}!`);}
+        else say(`${letterSay(b,up)}! ${left===1?'One more!':left+' more!'}`);
+      }else{
+        const rest=[...area.querySelectorAll('.balloon:not(.popped)')].find(x=>x.textContent===ch);
+        wrong(el,k,`That's ${letterSay(o,up)}. Pop ${letterSay(b,up)}!`,rest);
+        if(R.qMiss>=2)$('#hid').textContent=ch;
+      }
+    };
+    area.appendChild(el);
+  });
+}
+/* ---------- Memory match ---------- */
+function qMemory(){
+  const P=poolFor(R.land),np=memPairs(R.land);
+  const ls=[];const src=shuffle(P.cur).concat(shuffle(P.review));
+  while(ls.length<np){const c=weightedPick(src.filter(x=>!ls.includes(x)),x=>weak(U(x))+weak(x));ls.push(c);}
+  const cards=shuffle(ls.flatMap(l=>[[l,true],[l,false]]));
+  bubble(`<div>Find the big and little pairs!</div>`);
+  R.speak=()=>say('Flip two cards. Find big and little letters that match!');R.speak();
+  const area=$('#playArea');area.className='mem';
+  area.style.gridTemplateColumns=`repeat(${np},auto)`;
+  let open=[],found=0,busy=false;
+  cards.forEach(([l,up])=>{
+    const c=document.createElement('button');c.className='card';c.innerHTML='<span class="back">🦄</span>';
+    c.onclick=()=>{
+      if(!canTap()||busy||c.classList.contains('up'))return;
+      c.classList.add('up');c.textContent=up?U(l):l;sfx.tap();say(letterSay(l,up));
+      open.push([c,l,up]);
+      if(open.length<2)return;
+      const [[c1,l1],[c2,l2]]=open;open=[];
+      if(l1===l2){
+        busy=true;
+        setTimeout(()=>{if(!R)return;c1.classList.add('done');c2.classList.add('done');sfx.right();hopUni();rec(U(l1),true);rec(l1,true);
+          say(`Big ${NAMES[l1]} and little ${NAMES[l1]}. A match!`);R.i++;drawMeter(R.i);found++;save();busy=false;
+          if(found===np){R.locked=true;setTimeout(()=>{if(!R)return;if(R.i>=R.n)finish();else next();},1800);}},500);
+      }else{
+        busy=true;R.mistakes++;
+        setTimeout(()=>{sfx.wrong();say(pick(['Not a match. Try again!','Oopsie, those don\'t match!','Hmm, not a pair. Keep looking!']));
+          setTimeout(()=>{[c1,c2].forEach(x=>{x.classList.remove('up');x.innerHTML='<span class="back">🦄</span>';});busy=false;},900);},600);
+      }
+    };
+    area.appendChild(c);
+  });
+}
+/* ---------- Sound detective ---------- */
+function qListen(){
+  const [b]=chooseTarget(false);const k=b;const word=PICS[b][0][1],ends=PICS[b][0][2];
+  bubble(`<div class="pic">👂</div><div>Which letter says this?</div>`);
+  R.speak=()=>say(`Listen! ${SOUNDS[b]}... ${SOUNDS[b]}. Which letter says ${SOUNDS[b]}?`);R.speak();
+  const opts=shuffle([b,...distractors(b,nChoices()-1)]);let right;
+  opts.forEach(o=>{const el=makeChoice(U(o)+o,'pair',(btn,e)=>{
+    if(o===b)correct(btn,e,k,`The letter ${NAMES[b]} says ${SOUNDS[b]}, like ${word}!`);
+    else wrong(btn,k,`That's the letter ${NAMES[o]}. It says ${SOUNDS[o]}. Listen: ${SOUNDS[b]}, like ${word}${ends?', at the end':''}.`,right);
+  });if(o===b)right=el;});
+}
+/* ---------- Read & match ---------- */
+function qRead(){
+  const known=knownLetters();
+  let list=WORDS.filter(([w])=>[...w].every(c=>known.has(c)));
+  if(list.length<5)list=WORDS.filter(([w])=>[...w].every(c=>'satpinmdgock'.includes(c)));
+  if(!R.used)R.used=[];
+  let cands=list.filter(([w])=>!R.used.includes(w));if(!cands.length)cands=list;
+  let pw=pick(cands);
+  if(R.retry.length&&R.sinceRetry>=2){pw=R.retry.shift();R.sinceRetry=0;}else R.sinceRetry++;
+  const [word,emo]=pw;R.used.push(word);R.cur=pw;
+  const sounds=[...word].map(c=>SOUNDS[c]);
+  bubble(`<div class="show" style="font-size:clamp(70px,13vmin,130px);letter-spacing:.06em">${word}</div><div>Read it! Which picture?</div>`);
+  R.speak=()=>say(`Read the word. Sound it out: ${sounds.join('... ')}. Which picture is it?`);
+  say('Read the word! Which picture is it? Tap the speaker for help.');
+  const others=shuffle(list.filter(([w])=>w!==word)).slice(0,nChoices()-1);
+  const opts=shuffle([pw,...others]);let right;
+  opts.forEach(([w,e2])=>{const el=makeChoice(e2,'pic',(btn,e)=>{
+    if(w===word)correct(btn,e,null,`${sounds.join('... ')}... ${word}! You read ${word}!`);
+    else wrong(btn,null,`That's ${w}. Look again: ${sounds.join('... ')}.`,right);
+  });el.setAttribute('aria-label',w);if(w===word)right=el;});
 }
 /* ---------- Trace ---------- */
 function qTrace(){
@@ -992,7 +1131,7 @@ function qWords(){
 /* ================= FINISH / PRIZES ================= */
 function finish(){
   const game=R.game,land=R.land;
-  const m=game==='trace'?R.mistakes:R.missedQs;
+  const m=game==='trace'?R.mistakes:game==='memory'?Math.max(0,R.mistakes-R.n):R.missedQs;
   const stars=m===0?3:m<=2?2:1;
   const lid=land>=0?LANDS[land].id:'words',gid=game==='words'?'build':game;
   const best=S.best[lid]||(S.best[lid]={});

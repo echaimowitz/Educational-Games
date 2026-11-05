@@ -8,8 +8,11 @@ A rainbow-and-unicorn letter game for preschoolers, made for iPad (works in any 
 - **Find the Letter**: hear a letter name, tap the right letter
 - **Big & Little**: match uppercase to lowercase (A ↔ a)
 - **Letter Sounds**: "pizza starts with /p/": the first step toward reading
+- **Balloon Pop**: pop every matching letter balloon, without popping a wrong one
+- **Memory Match**: flip cards to pair big and little letters
+- **Sound Detective**: hear only a sound ("sss") and pick the letter
 - **Rainbow Trace**: trace each letter with a finger on handwriting lines
-- **Word Rainbow** (opens later): sound out and build real words like *cat*, *map*, *sun*
+- **Word Rainbow** (opens later): **Build Words** (spell *cat*, *map*, *sun* by sounds) and **Read & Match** (read a word on her own and tap its picture)
 
 Letters come in phonics order (s a t p → i n m d → g o c k → e u r h → b f l j → v w x y z q), so real words open up early. Letters she misses come up more often.
 
