@@ -33,13 +33,24 @@ To play on an iPad or share a link, host it free with **GitHub Pages**: in the r
 - **🏁 Race Mode: 🔁 Take turns** (default): 1–4 players take turns on one device. A "pass the device" screen and a 3-2-1 countdown start each turn. A stopwatch times the player's 5, 10 or 15 questions, and each wrong answer adds **+5 seconds** (the clock pauses while the correct answer is shown). **Fastest total time wins.** Each player gets questions from their own grade at the difficulty chosen for the race. Personal-best times are saved, and one player alone makes a time trial.
 - **🏁 Race Mode: 👯 Side by side:** two players race on one screen at the same time. A wrong answer freezes the player for 3 seconds. The first to 5, 10 or 15 correct wins. Both race styles keep a head-to-head record.
 
+## 📖 Lessons for every topic
+
+Every mission (all 69 topics, including the bonus worlds) has a short introductory lesson, in case a topic hasn't been taught at school yet:
+
+1. **The big idea**, in kid-friendly words, plus key vocabulary.
+2. **How to do it:** the steps, plus a "watch out" tip.
+3. **Watch me:** a worked example generated from the mission's own questions. "How do I start?" reveals the hint, then the full solution. "Another example" makes a new one.
+4. **Your turn:** 3 warm-up practice questions with free hints and no penalties, then straight into the mission.
+
+The game suggests the lesson automatically the first time a kid opens a mission, and offers it again after a mission ends with 0 stars. Every mission screen also has a 📖 Lesson button. A first lesson earns +3 💎, and there are badges for finishing 1 and 10 lessons. Bonus-world lessons have separate versions for Grades 4–5 and 6–8. The lesson text lives in `js/lessons.js`.
+
 ## What makes it challenging
 
 - **Adaptive levels:** 🌱 Warm-up → 🔥 Tricky → ⚡ Expert. Three correct answers in a row raise the level, and two misses in a row lower it. The level is saved for each skill.
 - **Missions** have 10 questions. **Stars:** ★ = 6/10 correct, ★★ = 8/10, ★★★ = 8/10 *and* reaching Expert.
 - **Bosses** take 12 hits to defeat. Their questions mix every skill in the world, each answer is timed, and the player has 3 hearts. Beating a main boss unlocks the next world.
 - **Hints** cost 2 💎, and every answer comes with a step-by-step explanation.
-- **Rewards:** gems, treasures, an avatar shop and 18 badges.
+- **Rewards:** gems, treasures, an avatar shop and 20 badges.
 
 ## For grown-ups
 
@@ -66,6 +77,7 @@ The ⚙️ *For Grown-ups* button on the player screen lets you:
 - `index.html`, `style.css`: page and themes
 - `js/questions.js`: question generators for every topic and level, plus answer checking (accepts fractions, mixed numbers, decimals, negatives). Bonus-world generators also take the player's grade.
 - `js/worlds.js`: worlds, missions, story and bosses
+- `js/lessons.js`: the introductory lesson for every topic
 - `js/game.js`: screens, profiles, missions, bosses, daily challenge, race mode, shop and badges
 - `tests/check-questions.js`: run `node math-quest/tests/check-questions.js` to generate about 140,000 questions and confirm each is well-formed and its answer is accepted
 - `tests/oracle.js`: run `node math-quest/tests/oracle.js` for an **independent math check**. It reads each question as the kid sees it, recomputes the answer from scratch (evaluating expressions, plugging solutions back into equations, rounding by digits, checking factors, inequalities, systems, transformations, angle equations, statistics, functions and more), and compares it with the answer key. Word problems and data questions are checked by hand.

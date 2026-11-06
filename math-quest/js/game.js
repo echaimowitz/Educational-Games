@@ -38,7 +38,10 @@
     { id: 'dstreak7', e: '🗓️', name: 'Week Warrior', desc: 'Play the Daily Challenge 7 days in a row' },
     { id: 'race1', e: '🏁', name: 'Speedster', desc: 'Win a race' },
     { id: 'race10', e: '🏎️', name: 'Race Champion', desc: 'Win 10 races' },
+    { id: 'lesson1', e: '📖', name: 'Curious Mind', desc: 'Finish your first lesson' },
+    { id: 'lesson10', e: '🎓', name: 'Super Scholar', desc: 'Finish 10 lessons' },
   ];
+  const LESSON_PRACTICE = 3, LESSON_GEMS = 3;
 
   // ---------------- storage ----------------
   function load() {
@@ -52,6 +55,7 @@
   function normalize(p) {
     p.daily = p.daily || { streak: 0, last: null, log: {} };
     p.races = p.races || { played: 0, wins: 0 };
+    p.lessons = p.lessons || {};
     p.owned = p.owned || [];
     AVATARS.filter((a) => a.cost === 0).forEach((a) => { if (!p.owned.includes(a.e)) p.owned.push(a.e); });
     return p;
@@ -348,7 +352,75 @@
           <li>Stuck? A hint costs ${HINT_COST} 💎</li>
         </ul>
         <p>You'll start at <b>${LEVELS[lvl].icon} ${LEVELS[lvl].name}</b>.</p>
-        <button class="btn big primary" data-act="start-mission" data-arg="${wi},${mi}">Let's go! 🚀</button>
+        ${lessonButtons(p, wi, mi)}
+      </div>`, w.theme);
+  }
+
+  // ---------------- LESSONS ----------------
+  function lessonButtons(p, wi, mi) {
+    const m = WORLDS[wi].missions[mi], has = !!MQ.getLesson(m.topic, p.grade), done = !!p.lessons[m.topic];
+    const played = (p.missions[mkey(wi, mi)] || {}).plays;
+    const go = `<button class="btn big ${has && !done && !played ? '' : 'primary'}" data-act="start-mission" data-arg="${wi},${mi}">${has && !done && !played ? 'Skip to the mission ▶' : 'Let\'s go! 🚀'}</button>`;
+    if (!has) return go;
+    if (!done && !played) return `<div class="lesson-suggest">📖 <b>New topic!</b> Start with a quick lesson: learn it, watch an example, then try 3 practice questions (free hints, +${LESSON_GEMS} 💎).</div>
+      <div class="menu-row"><button class="btn big primary" data-act="lesson" data-arg="${wi},${mi},0">📖 Start the lesson</button>${go}</div>`;
+    return `<div class="menu-row">${go}<button class="btn" data-act="lesson" data-arg="${wi},${mi},0">📖 ${done ? 'Review the lesson' : 'Lesson'}</button></div>`;
+  }
+  let lessonEx = null;
+  function renderLesson(wi, mi, step) {
+    screen = 'lesson';
+    const p = P(), w = WORLDS[wi], m = w.missions[mi], L = MQ.getLesson(m.topic, p.grade);
+    if (!L) return renderMissionIntro(wi, mi);
+    const titles = ['The big idea', 'How to do it', 'Watch me', 'Your turn'];
+    const nav = `<div class="lesson-steps">${titles.map((t, i) => `<button class="chip ${i === step ? 'sel' : ''} ${i < step ? 'done' : ''}" data-act="${i === 3 ? 'lesson-practice' : 'lesson'}" data-arg="${wi},${mi},${i}">${i < step ? '✓' : i + 1}. ${t}</button>`).join('')}</div>`;
+    let body = '', next = '';
+    if (step === 0) {
+      body = `<p class="lesson-big">${L.big}</p>${L.words && L.words.length ? `<div class="vocab"><div class="label">📝 Key words</div>${L.words.map(([k, v]) => `<div class="vword"><b>${k}</b><span>${v}</span></div>`).join('')}</div>` : ''}`;
+      next = `<button class="btn big primary" data-act="lesson" data-arg="${wi},${mi},1">Next: how to do it ➜</button>`;
+    } else if (step === 1) {
+      body = `<ol class="lesson-list">${L.steps.map((x) => `<li>${x}</li>`).join('')}</ol>${L.tip ? `<div class="hint">⚠️ <b>Watch out:</b> ${L.tip}</div>` : ''}`;
+      next = `<button class="btn big primary" data-act="lesson" data-arg="${wi},${mi},2">Next: watch an example ➜</button>`;
+    } else {
+      if (!lessonEx || lessonEx.topic !== m.topic) lessonEx = Object.assign(Q.generate(m.topic, 1, null, p.grade), { shown: 0 });
+      const e = lessonEx;
+      body = `<div class="example card"><div class="label">👀 Example question</div><div class="qtext">${e.q}</div>
+        ${e.shown >= 1 ? `<div class="hint">💡 <b>Think:</b> ${e.hint}</div>` : ''}
+        ${e.shown >= 2 ? `<div class="worked"><b>✅ Answer: ${Q.answerHTML(e.a)}</b><br>${e.explain}</div>` : ''}
+        <div class="menu-row">${e.shown < 2 ? `<button class="btn primary" data-act="lesson-reveal" data-arg="${wi},${mi}">${e.shown === 0 ? '💡 How do I start?' : '✅ Show the answer'}</button>` : ''}
+        <button class="btn" data-act="lesson-another" data-arg="${wi},${mi}">🔄 Another example</button></div></div>`;
+      next = `<button class="btn big primary" data-act="lesson-practice" data-arg="${wi},${mi}">Your turn: ${LESSON_PRACTICE} practice questions ➜</button>`;
+    }
+    show(`${topbar(p, 'mission:' + wi + ',' + mi)}
+      <div class="card lesson">
+        <div class="lesson-head"><span class="intro-emoji sm">${m.treasure}</span><div><div class="label">📖 Lesson</div><h2>${m.name}</h2><p class="skill">${m.skill}</p></div></div>
+        ${nav}${body}
+        <div class="menu-row">${step > 0 ? `<button class="btn ghost" data-act="lesson" data-arg="${wi},${mi},${step - 1}">⬅ Back</button>` : ''}${next}</div>
+      </div>`, w.theme);
+  }
+  function startPractice(wi, mi) {
+    const p = P(), m = WORLDS[wi].missions[mi];
+    S = { mode: 'practice', wi, mi, topic: m.topic, grade: p.grade, lvl: 1, total: LESSON_PRACTICE, idx: 0, correct: 0, results: [], hints: 0, gemsEarned: 0, seen: new Set() };
+    nextQuestion();
+  }
+  function finishPractice() {
+    const p = P(), w = WORLDS[S.wi], m = w.missions[S.mi], first = !p.lessons[m.topic];
+    p.lessons[m.topic] = true;
+    if (first) addGems(p, LESSON_GEMS);
+    award(p, 'lesson1');
+    if (Object.keys(p.lessons).length >= 10) award(p, 'lesson10');
+    save();
+    screen = 'results';
+    sfx.win(); confetti(['📖', '⭐', ...w.deco]);
+    const wi = S.wi, mi = S.mi, c = S.correct;
+    show(`${topbar(p, 'world:' + wi)}
+      <div class="card results">
+        <div class="intro-emoji">🎓</div>
+        <h2>Lesson complete!</h2>
+        <p class="score">${c} / ${LESSON_PRACTICE} practice questions right${first ? ` · 💎 +${LESSON_GEMS}` : ''}</p>
+        <p class="note">${c === LESSON_PRACTICE ? 'You\'ve got it! Time for the real mission.' : c >= 1 ? 'Nice work! You can practice again, or jump into the mission and use hints if you need them.' : 'This one is tricky. Try the lesson again, or ask a grown-up to look at the example with you.'}</p>
+        <div class="menu-row"><button class="btn big primary" data-act="start-mission" data-arg="${wi},${mi}">Start the mission ▶</button>
+          <button class="btn" data-act="lesson-practice" data-arg="${wi},${mi}">🔁 Practice again</button>
+          <button class="btn ghost" data-act="lesson" data-arg="${wi},${mi},0">📖 Lesson</button></div>
       </div>`, w.theme);
   }
 
@@ -397,6 +469,7 @@
     if (S.mode === 'daily' && S.idx >= DAILY_COUNT) return finishDaily();
     if (S.mode === 'boss' && (S.hp <= 0 || S.hearts <= 0)) return finishBoss();
     if (S.mode === 'turn' && S.idx >= S.total) return finishTurn();
+    if (S.mode === 'practice' && S.idx >= S.total) return finishPractice();
     if (S.mode === 'daily') { S.q = S.list[S.idx]; S.lvl = S.q.level; }
     else if (S.mode === 'turn') { const t = pick(S.topics.filter((x) => x !== S.lastTopic)); S.lastTopic = t; S.q = Q.generate(t, S.lvl, S.seen, S.grade); }
     else {
@@ -443,7 +516,7 @@
   function renderPlay() {
     screen = 'play';
     const p = P(), w = WORLDS[S.wi], q = S.q, a = q.a;
-    const total = S.mode === 'daily' ? DAILY_COUNT : S.mode === 'turn' ? S.total : Q_PER_MISSION;
+    const total = S.mode === 'daily' ? DAILY_COUNT : S.mode === 'turn' || S.mode === 'practice' ? S.total : Q_PER_MISSION;
     let progress = '', bossHead = '';
     if (S.mode !== 'boss') {
       progress = `<div class="progress">${Array.from({ length: total }, (_, i) => `<span class="dot ${S.results[i] === true ? 'ok' : S.results[i] === false ? 'bad' : i === S.idx ? 'now' : ''}"></span>`).join('')}</div>`;
@@ -476,7 +549,7 @@
     }
     const canHint = S.mode !== 'daily' && S.mode !== 'turn' && !S.hintShown && !S.answered;
     const right = S.mode === 'daily' || S.mode === 'turn' ? `<div class="stopwatch" id="stopwatch">${stopwatchText()}</div>` : `<div class="gems">💎 ${p.gems}</div>`;
-    const meta = S.mode === 'boss' ? `Round ${S.count}` : S.mode === 'turn' ? `🏁 ${S.who.avatar} ${esc(S.who.name)}'s turn · Question ${Math.min(S.idx + 1, total)} of ${total}` : `${S.mode === 'daily' ? '📅 Daily · ' : ''}Question ${Math.min(S.idx + 1, total)} of ${total}`;
+    const meta = S.mode === 'boss' ? `Round ${S.count}` : S.mode === 'turn' ? `🏁 ${S.who.avatar} ${esc(S.who.name)}'s turn · Question ${Math.min(S.idx + 1, total)} of ${total}` : S.mode === 'practice' ? `📖 Practice · Question ${Math.min(S.idx + 1, total)} of ${total}` : `${S.mode === 'daily' ? '📅 Daily · ' : ''}Question ${Math.min(S.idx + 1, total)} of ${total}`;
     app.innerHTML = `<div class="screen ${w.theme} play">${deco(w.theme)}<div class="wrap">
       <div class="topbar"><button class="btn ghost" data-act="quit">✖ Quit</button>${progress || '<span></span>'}<div class="topbar-right"><button class="btn ghost save-btn icon" data-act="save" title="Save my progress">💾</button>${right}</div></div>
       ${bossHead}${timerBar}
@@ -485,7 +558,7 @@
         <div class="qtext">${q.q}</div>
         ${S.hintShown ? `<div class="hint">💡 ${q.hint}</div>` : ''}
         ${S.msg ? `<div class="msg">${S.msg}</div>` : ''}
-        ${canHint ? `<button class="btn hint-btn" data-act="hint" ${p.gems < HINT_COST ? 'disabled' : ''}>💡 Hint (${HINT_COST} 💎)</button>` : ''}
+        ${canHint ? (S.mode === 'practice' ? `<button class="btn hint-btn" data-act="hint">💡 Hint (free)</button>` : `<button class="btn hint-btn" data-act="hint" ${p.gems < HINT_COST ? 'disabled' : ''}>💡 Hint (${HINT_COST} 💎)</button>`) : ''}
       </div>
       <div class="controls">${controls}</div>
     </div></div>`;
@@ -527,7 +600,7 @@
   }
 
   function record(ok, timedOut) {
-    const p = S.mode === 'turn' ? S.who.profile : P(), noGems = S.mode === 'daily' || S.mode === 'turn';
+    const p = S.mode === 'turn' ? S.who.profile : P(), noGems = S.mode === 'daily' || S.mode === 'turn' || S.mode === 'practice';
     stopTimer();
     if (S.mode === 'daily' || S.mode === 'turn') S.elapsed += Date.now() - S.qStart;
     S.answered = true; S.lastOk = ok; S.timedOut = timedOut; S.lastGems = 0;
@@ -572,8 +645,9 @@
 
   function useHint() {
     const p = P();
-    if (!S || S.mode === 'daily' || S.hintShown || S.answered || p.gems < HINT_COST) return;
-    p.gems -= HINT_COST; S.hints++; S.hintShown = true;
+    const cost = S && S.mode === 'practice' ? 0 : HINT_COST;
+    if (!S || S.mode === 'daily' || S.mode === 'turn' || S.hintShown || S.answered || p.gems < cost) return;
+    p.gems -= cost; S.hints++; S.hintShown = true;
     saveSession(); save();
     renderPlay();
   }
@@ -605,6 +679,7 @@
         ${firstTreasure ? `<div class="treasure-won"><span>${m.treasure}</span>You found the <b>${m.treasureName}</b>!</div>` : ''}
         <p class="note">${tip}</p>
         <div class="menu-row">
+          ${stars === 0 && MQ.getLesson(m.topic, p.grade) ? `<button class="btn primary" data-act="lesson" data-arg="${S.wi},${S.mi},0">📖 Review the lesson</button>` : ''}
           <button class="btn" data-act="mission" data-arg="${S.wi},${S.mi}">🔁 Play again</button>
           ${nextUn ? `<button class="btn primary" data-act="mission" data-arg="${S.wi},${S.mi + 1}">Next mission ➜</button>` : ''}
           ${S.mi === last && bossUnlocked(p, S.wi) && !p.bosses[S.wi] ? `<button class="btn danger" data-act="boss" data-arg="${S.wi}">⚔️ Fight the boss!</button>` : ''}
@@ -1106,6 +1181,7 @@
       case 'next': return nextQuestion();
       case 'quit': {
         if (S && S.mode === 'turn') return route('turn-quit');
+        if (S && S.mode === 'practice') { const wi = S.wi, mi = S.mi; S = null; stopAll(); return renderLesson(wi, mi, 2); }
         const what = S.mode === 'boss' ? 'battle' : S.mode === 'daily' ? 'daily challenge (you can start it again from the beginning)' : 'mission';
         if (confirm(`Leave now? Progress in this ${what} will be lost (gems you earned are kept).`)) { const wi = S.wi, mode = S.mode; S = null; stopAll(); clearSession(); save(); if (mode === 'daily') renderDailyIntro(); else renderWorld(wi); }
         return;
@@ -1120,6 +1196,10 @@
       case 'backup-restore-file': { const f = document.getElementById('restore-file'); if (f) { f.value = ''; f.click(); } return; }
       case 'backup-copy': return copyCode();
       case 'backup-paste': { const code = prompt('Paste the save code here:'); if (code) restoreFrom(code.trim()); return; }
+      case 'lesson': { const [wi, mi, st] = arg.split(',').map(Number); if (st === 0) lessonEx = null; return renderLesson(wi, mi, st || 0); }
+      case 'lesson-reveal': { const [wi, mi] = arg.split(',').map(Number); if (lessonEx) lessonEx.shown++; return renderLesson(wi, mi, 2); }
+      case 'lesson-another': { const [wi, mi] = arg.split(',').map(Number); lessonEx = null; return renderLesson(wi, mi, 2); }
+      case 'lesson-practice': { const [wi, mi] = arg.split(',').map(Number); return startPractice(wi, mi); }
       case 'race-setup': return renderRaceSetup();
       case 'race-pick': { const [i, id] = arg.split('|'); raceDraft.sides[+i].pid = id; const pr = byId(id); if (pr) raceDraft.sides[+i].wi = gradeWorld(pr.grade); return renderRaceSetup(); }
       case 'race-mode': raceDraft.mode = arg; return renderRaceSetup();
@@ -1154,6 +1234,7 @@
       }
       default:
         if (act.startsWith('world:')) return renderWorld(+act.split(':')[1]);
+        if (act.startsWith('mission:')) { const [wi, mi] = act.split(':')[1].split(',').map(Number); return renderMissionIntro(wi, mi); }
     }
   }
 
