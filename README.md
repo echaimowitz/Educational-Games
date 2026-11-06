@@ -23,6 +23,8 @@ Letters come in phonics order (s a t p → i n m d → g o c k → e u r h → b
 ### Playing on an iPad
 1. Open `unicorn-letters/index.html` from a web host (e.g., turn on GitHub Pages for this repo, then visit `https://<user>.github.io/Educational-Games/unicorn-letters/`).
 2. In Safari, tap **Share → Add to Home Screen** for a full-screen app icon.
-3. Turn the iPad's silent switch/volume up: the game talks. Progress is saved on that iPad.
+3. Turn the iPad's silent switch/volume up: the game talks.
+
+**Saving**: progress saves after every rainbow, when the game is closed, and with the 💾 **Save** button on the home screen. Opened from its claude.ai link while signed in, it also saves to your Claude account, so it survives the iPad clearing its memory. Hosted elsewhere, it saves in that browser only.
 
 One self-contained file; it needs internet once to load the fonts.

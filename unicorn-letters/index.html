@@ -80,6 +80,15 @@ button:focus-visible,input:focus-visible{outline:4px solid var(--sky);outline-of
   background:var(--card);box-shadow:0 5px 0 var(--card-edge);
   font-family:var(--font-display);font-weight:800;font-size:26px;font-variant-numeric:tabular-nums;
 }
+.save-btn{display:flex;align-items:center;gap:8px;padding:10px 20px;border-radius:40px;background:var(--mint);color:#fff;
+  box-shadow:0 5px 0 var(--mint-deep);font-family:var(--font-display);font-weight:800;font-size:22px;min-height:56px}
+.save-btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--mint-deep)}
+.save-btn .ico{font-size:26px;line-height:1}
+.toast{position:fixed;z-index:40;left:50%;transform:translateX(-50%);bottom:max(24px,calc(env(safe-area-inset-bottom,0px) + 16px));
+  background:var(--ink);color:#fff;padding:14px 22px;border-radius:20px;font-family:var(--font-display);font-weight:600;font-size:20px;
+  max-width:calc(100vw - 32px);text-align:center;box-shadow:0 8px 24px rgba(74,42,107,.3)}
+.cloud-note{font-size:17px}
+.cloud-note.ok{color:var(--good)}
 .star-pill .st{color:var(--gold);font-size:28px;line-height:1}
 h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;letter-spacing:.01em}
 .screen-title{font-size:clamp(28px,5vmin,44px);font-weight:800;text-align:center}
@@ -343,6 +352,7 @@ h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;letter-spaci
   <div class="topbar">
     <div class="hold-ring"><button class="round-btn" id="parentBtn" aria-label="Grown-ups (hold)">⚙️</button></div>
     <div class="spacer"></div>
+    <button class="save-btn" id="saveBtn" aria-label="Save progress"><span class="ico">💾</span> <span id="saveLbl">Save</span></button>
     <div class="star-pill"><span class="st">★</span><span class="js-stars">0</span></div>
   </div>
   <div class="home-main">
@@ -457,6 +467,11 @@ h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;letter-spaci
       <label class="toggle"><input type="checkbox" id="pFour"> Harder: 4 choices instead of 3</label>
     </div>
     <div class="psec">
+      <h3>Saving</h3>
+      <p class="cloud-note" id="pCloud">Checking where progress is saved…</p>
+      <p>Progress saves by itself after every rainbow and whenever the game is closed. The 💾 Save button on the home screen saves right away.</p>
+    </div>
+    <div class="psec">
       <h3>Start over</h3>
       <p>Erases stars, stickers, unicorn outfits and letter progress on this iPad.</p>
       <div class="prow" id="resetRow"><button class="pbtn danger" id="pReset">Reset progress</button></div>
@@ -565,7 +580,53 @@ function freshState(){return {name:'',totalStars:0,rainbows:0,stickers:[],best:{
   look:{body:'white',mane:'candy',horn:'gold',extras:[]},voice:true,unlockAll:false,four:false};}
 let S=freshState();
 try{const raw=localStorage.getItem(KEY); if(raw) S=Object.assign(freshState(),JSON.parse(raw));}catch(e){}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+/* Progress is kept in two places: this browser (fast, but iPads and app views can wipe it)
+   and, when the page runs on claude.ai, the signed-in viewer's private cloud record. */
+let CLOUD=null;            // {ref} once the cloud record is reachable
+let cloudState='checking'; // checking | on | off
+let cloudBusy=null,cloudAgain=false,cloudTimer=0,lastCloudOk=0;
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(S));return true;}catch(e){return false;}}
+function save(){S.savedAt=Date.now();saveLocal();if(CLOUD){clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>cloudSave(),1200);}}
+function cloudSave(){
+  if(!CLOUD)return Promise.resolve(false);
+  clearTimeout(cloudTimer);
+  if(cloudBusy){cloudAgain=true;return cloudBusy;}
+  const body={v:1,savedAt:S.savedAt||Date.now(),state:JSON.parse(JSON.stringify(S))};
+  cloudBusy=CLOUD.ref.set(body).then(()=>{lastCloudOk=Date.now();return true;},
+    e=>{if(e&&['not_granted','revoked','capability_disabled','capability_removed','invalid_argument'].includes(e.code)){CLOUD=null;cloudState='off';}return false;})
+    .then(ok=>{cloudBusy=null;if(cloudAgain){cloudAgain=false;return cloudSave();}return ok;});
+  return cloudBusy;
+}
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2800);}
+async function cloudInit(){
+  const use=window.claude&&window.claude.use;
+  const done=st=>{cloudState=st;if(current==='parent')renderCloudNote();};
+  if(!use){done('off');return;}
+  try{
+    const [db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
+    const id=user?await user.id():null;
+    if(!db||!id){done('off');return;}
+    const ref=db.doc('data/users/'+id+'/progress');
+    const snap=await Promise.race([ref.get(),new Promise((_,rej)=>setTimeout(()=>rej({code:'timeout'}),10000))]);
+    CLOUD={ref};done('on');
+    const d=snap.exists?snap.data():null;
+    const localEmpty=!S.totalStars&&!S.rainbows&&!S.stickers.length;
+    if(d&&d.state&&((d.savedAt||0)>(S.savedAt||0)||(localEmpty&&(d.state.rainbows||d.state.totalStars)))){
+      S=Object.assign(freshState(),JSON.parse(JSON.stringify(d.state)));saveLocal();
+      drawUnicorns();
+      if(S.name)$('#nameBox').hidden=true;
+      if(current!=='splash'&&current!=='game')show(current);
+    }else if(S.savedAt||S.totalStars||S.rainbows){cloudSave();}
+  }catch(e){done('off');}
+}
+function renderCloudNote(){
+  const el=$('#pCloud');if(!el)return;
+  if(cloudState==='on'){el.className='cloud-note ok';el.textContent='✓ Progress is saved to your Claude account, so it comes back even if the iPad clears its memory.';}
+  else if(cloudState==='checking'){el.className='cloud-note';el.textContent='Checking where progress is saved…';}
+  else{el.className='cloud-note';el.textContent='Progress is saved on this iPad only. To keep it safe, open the game from the Claude link while signed in to Claude.';}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){saveLocal();cloudSave();}});
+window.addEventListener('pagehide',()=>{saveLocal();cloudSave();});
 
 /* ================= HELPERS ================= */
 const $=s=>document.querySelector(s);
@@ -1249,7 +1310,7 @@ function renderStickers(){
   btn.addEventListener('click',()=>{ if(current!=='home')return; if(tip)return; tip=document.createElement('div');tip.className='hold-tip';tip.textContent='Grown-ups: press and hold';document.body.appendChild(tip);setTimeout(()=>{tip.remove();tip=null;},1800);});
 })();
 function renderParent(){
-  $('#pName').value=S.name||'';
+  $('#pName').value=S.name||'';renderCloudNote();
   $('#pVoice').checked=!!S.voice;$('#pUnlock').checked=!!S.unlockAll;$('#pFour').checked=!!S.four;
   const order=LANDS.flatMap(L=>L.letters);
   const lvl=k=>{const m=S.mastery[k];if(!m||(m.c+m.w)===0)return 0;return (m.c>=5&&m.c/(m.c+m.w)>=.75)?2:1;};
@@ -1261,7 +1322,7 @@ function renderParent(){
   $('#pVoiceName').textContent=VOICE?`Voice: ${VOICE.name}`:'Voice: iPad default';
   $('#resetRow').innerHTML='<button class="pbtn danger" id="pReset">Reset progress</button>';
   $('#pReset').onclick=()=>{$('#resetRow').innerHTML='<span>Erase everything?</span><button class="pbtn danger" id="pYes">Yes, erase</button><button class="pbtn plain" id="pNo">Cancel</button>';
-    $('#pYes').onclick=()=>{const keep={name:S.name,voice:S.voice};S=Object.assign(freshState(),keep);save();renderParent();};
+    $('#pYes').onclick=()=>{const keep={name:S.name,voice:S.voice};S=Object.assign(freshState(),keep);save();cloudSave();renderParent();};
     $('#pNo').onclick=renderParent;};
 }
 $('#pNameSave').onclick=()=>{S.name=$('#pName').value.trim();save();$('#pNameSave').textContent='Saved ✓';setTimeout(()=>$('#pNameSave').textContent='Save',1500);};
@@ -1271,7 +1332,17 @@ $('#pUnlock').onchange=e=>{S.unlockAll=e.target.checked;save();};
 $('#pFour').onchange=e=>{S.four=e.target.checked;save();};
 
 /* ================= BOOT ================= */
+$('#saveBtn').addEventListener('click',async()=>{
+  sfx.tap();const lbl=$('#saveLbl');lbl.textContent='Saving…';
+  S.savedAt=Date.now();const local=saveLocal();
+  const ok=CLOUD?await cloudSave():false;
+  if(ok){sfx.sparkle();lbl.textContent='Saved ✓';toast('Saved! Your stars and stickers are safe. 🦄');say('Saved! Your stars and stickers are safe.');}
+  else if(local){lbl.textContent='Saved ✓';toast(cloudState==='on'?'Saved on this iPad. Couldn\'t reach the internet, so it will try again.':'Saved on this iPad.');}
+  else{lbl.textContent='Save';toast('This browser isn\'t keeping saves. Open the game from the Claude link while signed in.');}
+  setTimeout(()=>lbl.textContent='Save',2500);
+});
 drawUnicorns();
+cloudInit();
 if(document.fonts&&document.fonts.load){document.fonts.load('700 100px Andika').catch(()=>{});}
 window.addEventListener('resize',()=>{if(R&&R.game==='trace'&&current==='game'&&!R.locked){const ch=R.traceList[R.i];const b=ch.toLowerCase();setupTrace(ch,mkey(b,ch!==b));}});
 </script>
