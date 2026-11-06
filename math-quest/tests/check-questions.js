@@ -30,6 +30,19 @@ for (const topic of Q.topics) {
   }
 }
 
+require('../js/lessons.js');
+// every mission topic must have a complete introductory lesson, for every grade it can be played at
+for (const w of WORLDS) for (const m of w.missions) for (const g of (w.bonus ? [4, 5, 6, 7, 8] : [w.grade])) {
+  total++;
+  const L = window.MQ.getLesson(m.topic, g);
+  if (!L) { fail(`no lesson for ${m.topic} (grade ${g})`); continue; }
+  if (!L.big || !Array.isArray(L.steps) || L.steps.length < 2 || !L.tip) fail(`lesson for ${m.topic} is incomplete`);
+  const text = L.big + L.steps.join('') + L.tip + (L.words || []).flat().join('');
+  if (/undefined|\$\{/.test(text)) fail(`lesson for ${m.topic} has bad text`);
+}
+const extra = Object.keys(window.MQ.LESSONS).filter((t) => !WORLDS.some((w) => w.missions.some((m) => m.topic === t)));
+if (extra.length) fail('lessons with no mission: ' + extra.join(', '));
+
 // every mission topic in the worlds must exist
 for (const w of WORLDS) for (const m of w.missions) if (!Q.topics.includes(m.topic)) fail(`world ${w.id} uses missing topic ${m.topic}`);
 
