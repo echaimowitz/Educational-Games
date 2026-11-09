@@ -8,15 +8,17 @@
   const FREE_AVATARS = ['🦄', '👸', '🐠', '🥋', '🧜‍♀️', '🐱', '🐶', '🦖', '🚀'];
 
   // ---------------- storage ----------------
-  // Players and gems live in Math Quest's save (same device + same web address), so both apps share them.
-  // Spelling words and progress live in Word Wizards' own save.
+  // Players, gems AND each player's spelling words live in the player's profile inside Math Quest's save
+  // (same device + same web address). So the words belong to the player: they stay until someone taps
+  // "Start a new week" (or deletes the player), and they're included in Math Quest's backups.
+  // Word Wizards' own save only keeps app settings (voice, speed, sound, timer).
   const readJSON = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
   let saveFailed = false;
   const writeJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); if (saveFailed) { saveFailed = false; banner(); } return true; } catch (e) { saveFailed = true; banner(); return false; } };
   function mathStore() { const s = readJSON(MQ_KEY); return s && Array.isArray(s.profiles) ? s : { profiles: [], settings: {}, current: null }; }
   const players = () => mathStore().profiles;
   const player = (id) => players().find((p) => p.id === id);
-  function updateProfile(id, fn) { const s = mathStore(), p = s.profiles.find((x) => x.id === id); if (!p) return null; fn(p); writeJSON(MQ_KEY, s); return p; }
+  function updateProfile(id, fn) { const s = mathStore(), p = s.profiles.find((x) => x.id === id); if (!p) return null; fn(p); return writeJSON(MQ_KEY, s) ? p : null; }
   function createPlayer(name, avatar, grade) {
     const s = mathStore();
     const p = {
@@ -27,18 +29,34 @@
     s.profiles.push(p); writeJSON(MQ_KEY, s); return p;
   }
 
-  const ww = readJSON(WW_KEY) || { players: {}, settings: {} };
-  ww.players = ww.players || {};
+  const ww = readJSON(WW_KEY) || { settings: {} };
   ww.settings = Object.assign({ rate: 1, voice: '', sound: true, timer: 'normal' }, ww.settings);
-  const save = () => writeJSON(WW_KEY, ww);
+  // One-time move: older versions kept words in Word Wizards' own save. Move them into each profile.
+  if (ww.players && Object.keys(ww.players).length) {
+    const s = mathStore();
+    s.profiles.forEach((p) => { if (ww.players[p.id] && !p.spelling) p.spelling = ww.players[p.id]; });
+    if (!writeJSON(MQ_KEY, s)) ww.keepPlayers = true;
+  }
+  if (!ww.keepPlayers) delete ww.players;
+  writeJSON(WW_KEY, ww);
   WW.settings = () => ww.settings;
   let cur = null; // current player id
+  let cache = null, cacheId = null; // the current player's spelling data
+  const spellingOf = (p) => (p && p.spelling) || {};
   function me() {
-    const m = (ww.players[cur] = ww.players[cur] || {});
+    if (!cache || cacheId !== cur) { cache = JSON.parse(JSON.stringify(spellingOf(player(cur)))); cacheId = cur; }
+    const m = cache;
     m.words = m.words || []; m.prog = m.prog || {}; m.badges = m.badges || []; m.stats = m.stats || { games: {}, best: {} };
     m.stats.games = m.stats.games || {}; m.stats.best = m.stats.best || {};
     return m;
   }
+  /** Save settings, and the current player's words and progress into her profile. */
+  function save() {
+    let ok = writeJSON(WW_KEY, ww);
+    if (cur && cache && cacheId === cur) ok = !!updateProfile(cur, (p) => { p.spelling = cache; }) && ok;
+    return ok;
+  }
+  const reloadPlayer = () => { cache = null; };
   const key = (w) => String(w).toLowerCase().trim();
   const prog = (w) => (me().prog[key(w.word)] = me().prog[key(w.word)] || { right: 0, wrong: 0, streak: 0 });
   const stars = (w) => Math.min(3, prog(w).streak);
@@ -160,7 +178,7 @@
     show(`<h1 class="title">🧙‍♀️ Word Wizards<small>Spelling magic, one word at a time</small></h1>
       <p class="story card">Every week brings new spelling words. Learn them, play with them, and become a <b>Word Wizard</b>! ✨<br><small>Players and 💎 gems are shared with Math Quest on this device.</small></p>
       <h2 class="on-bg">Who's practicing?</h2>
-      <div class="grid profiles">${ps.map((p) => { const m = ww.players[p.id]; const n = m && m.words ? m.words.length : 0; return `<button class="profile card" data-act="choose" data-arg="${p.id}"><span class="avatar">${p.avatar}</span><span class="pname">${esc(p.name)}</span><span class="pmeta">${n ? `📝 ${n} words this week` : 'No words yet'} · 💎 ${p.gems}</span></button>`; }).join('')}
+      <div class="grid profiles">${ps.map((p) => { const n = (spellingOf(p).words || []).length; return `<button class="profile card" data-act="choose" data-arg="${p.id}"><span class="avatar">${p.avatar}</span><span class="pname">${esc(p.name)}</span><span class="pmeta">${n ? `📝 ${n} words this week` : 'No words yet'} · 💎 ${p.gems}</span></button>`; }).join('')}
         <button class="profile card new" data-act="new-player"><span class="avatar">➕</span><span class="pname">New Player</span></button></div>
       <div class="center menu-row"><button class="btn ghost" data-act="settings">⚙️ For Grown-ups</button><a class="btn ghost" href="../math-quest/index.html">🌈 Math Quest</a></div>`, 'theme-home');
   }
@@ -210,6 +228,7 @@
       <div class="guide card"><span class="guide-emoji">${w.guide.emoji}</span><div><b>${w.guide.name}:</b> ${words.length ? (nReady === words.length ? 'Every word is test-ready! You are a true Word Wizard! 🌟' : `You have <b>${words.length}</b> words this week. Let's practice!`) : 'No spelling words yet! Add this week\'s list to start the magic. ✨'}</div></div>
       ${words.length ? `<div class="card ready-card"><div class="ready-head"><b>⭐ Test-ready: ${nReady} of ${words.length}</b><span class="note">Spell a word right 3 times in a row from memory to make it test-ready.</span></div>
         <div class="ready-bar"><div style="width:${(nReady / words.length) * 100}%"></div></div>
+        <div class="note">💾 Saved in ${esc(player(cur).name)}'s profile until you start a new week.</div>
         <div class="chips-row">${words.map((x) => `<span class="wchip s${stars(x)}" title="${stars(x)} of 3">${esc(x.word)}${x.challenge ? ' ⭐' : ''}</span>`).join('')}</div></div>` : ''}
       <div class="menu-row">
         <button class="btn ${words.length ? '' : 'big primary'}" data-act="edit">${words.length ? '✏️ Edit words' : '✏️ Add this week\'s words'}</button>
@@ -232,11 +251,29 @@
       <div class="card form wide">
         <h2>✏️ This week's spelling words</h2>
         <p class="note">Type or paste the words, <b>one per line</b> (commas work too). Put a <b>*</b> in front of a challenge word, like <b>*necessary</b>. Then tap <b>Look up words</b>: the app finds the pronunciation, meanings and example sentences, and you can check and edit them.</p>
-        <textarea id="wordlist" rows="12" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="because&#10;bright&#10;receive&#10;*necessary">${esc(text)}</textarea>
+        <textarea id="wordlist" rows="12" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="because&#10;bright&#10;receive&#10;*necessary">${esc(m.listDraft != null ? m.listDraft : text)}</textarea>
         <div class="menu-row"><button class="btn big primary" data-act="lookup">✨ Look up words</button></div>
         ${m.words.length ? '<div class="menu-row"><button class="btn danger sm" data-act="new-week">🗓️ Start a new week (clear these words)</button></div>' : ''}
       </div>`);
   }
+  /** Save the editor's words into the player's profile right away (called after every change). */
+  function persistEdit() {
+    if (!edit) return;
+    const m = me(), seen = new Set();
+    m.words = edit.words.filter((w) => w.word && !seen.has(key(w.word)) && seen.add(key(w.word))).map((w) => ({
+      id: w.id, word: w.word, challenge: !!w.challenge, phonetic: w.phonetic || '', audio: w.audio || '', status: w.status,
+      meanings: w.meanings.map((x) => ({ pos: (x.pos || '').trim(), def: (x.def || '').trim(), sentences: x.sentences.map((t) => t.trim()).filter(Boolean) })).filter((x) => x.def || x.sentences.length),
+      alts: w.alts || [],
+    }));
+    const keep = new Set(m.words.map((w) => key(w.word)));
+    Object.keys(m.prog).forEach((k) => { if (!keep.has(k)) delete m.prog[k]; });
+    m.weekStart = m.weekStart || Date.now();
+    delete m.listDraft;
+    save();
+    const el = document.getElementById('autosave'); if (el) { el.textContent = '💾 Saved'; el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 600); }
+  }
+  let persistTimer = null;
+  const persistSoon = () => { clearTimeout(persistTimer); persistTimer = setTimeout(persistEdit, 400); };
   async function lookupAll() {
     const raw = document.getElementById('wordlist').value;
     const items = raw.split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean);
@@ -245,15 +282,24 @@
     if (!list.length) return toast('Type at least one word ✏️');
     if (list.length > 40) toast('That\'s a lot of words! Games work best with 10–20.');
     const old = {}; me().words.forEach((w) => { old[key(w.word)] = w; });
-    edit = { words: list.map(({ word, challenge }) => (old[key(word)] && old[key(word)].status !== 'offline' ? Object.assign({}, old[key(word)], { challenge }) : { id: newId(), word, challenge, status: 'pending', meanings: [], alts: [], phonetic: '', audio: '' })) };
+    edit = { words: list.map(({ word, challenge }) => (old[key(word)] && old[key(word)].status !== 'offline' ? JSON.parse(JSON.stringify(Object.assign({}, old[key(word)], { challenge }))) : { id: newId(), word, challenge, status: 'pending', meanings: [], alts: [], phonetic: '', audio: '' })) };
+    persistEdit(); // the list is saved immediately, even before the lookups finish
     renderEditor();
-    for (const w of edit.words) {
+    const pid = cur, myEdit = edit;
+    for (const w of myEdit.words) {
       if (w.status !== 'pending') continue;
       const r = await WW.dict.lookup(w.word);
-      if (!edit || screen !== 'editor') return;
       Object.assign(w, { status: r.status, phonetic: r.phonetic, audio: r.audio, meanings: r.meanings, alts: r.alts });
-      const card = document.getElementById('card-' + w.id); if (card) card.outerHTML = editCard(w);
-      updateEditorSummary();
+      if (cur !== pid) continue;
+      if (edit === myEdit) {
+        persistEdit();
+        const card = document.getElementById('card-' + w.id); if (card) card.outerHTML = editCard(w);
+        updateEditorSummary();
+      } else {
+        // the editor was closed while looking up: fill in the saved word directly
+        const saved = me().words.find((x) => x.id === w.id);
+        if (saved && saved.status === 'pending') { Object.assign(saved, { status: r.status, phonetic: r.phonetic, audio: r.audio, meanings: r.meanings, alts: r.alts }); save(); }
+      }
     }
   }
   function flags(w) {
@@ -290,20 +336,21 @@
   function updateEditorSummary() {
     const el = document.getElementById('ed-summary'); if (!el || !edit) return;
     const pending = edit.words.filter((w) => w.status === 'pending').length, needs = edit.words.filter((w) => flags(w).some((x) => /⚠️|❓|📡/.test(x))).length;
-    el.innerHTML = pending ? `⏳ Looking up ${pending} word${pending > 1 ? 's' : ''}…` : needs ? `⚠️ ${needs} word${needs > 1 ? 's need' : ' needs'} a little help (look for the yellow cards). You can still save now and finish later.` : '✅ All words have a meaning and a sentence. Check that the meanings make sense for your child, then save!';
+    el.innerHTML = pending ? `⏳ Looking up ${pending} word${pending > 1 ? 's' : ''}…` : needs ? `⚠️ ${needs} word${needs > 1 ? 's need' : ' needs'} a little help (look for the yellow cards). It is all saved, so you can finish later.` : '✅ All words have a meaning and a sentence. Check that the meanings make sense for your child. Everything is already saved, so tap Done when you are finished.';
   }
   function renderEditor() {
     screen = 'editor';
     show(`${topbar('edit')}
       <div class="card form wide"><h2>✏️ Check the words</h2>
         <p class="note">The dictionary's definitions are written for grown-ups, so feel free to reword them in kid-friendly language. Every word needs at least one meaning and one sentence. If a word has more than one meaning, add a sentence for each. 📚 <i>Other meanings</i> lists more options from the dictionary.</p>
-        <p id="ed-summary" class="ed-summary"></p></div>
+        <p id="ed-summary" class="ed-summary"></p><p class="note">💾 Changes save automatically to this player's profile as you type. <span id="autosave" class="autosave"></span></p></div>
       <div id="ed-cards">${edit.words.map(editCard).join('')}</div>
-      <div class="card center sticky-save"><button class="btn big primary" data-act="ed-save">💾 Save words</button></div>`);
+      <div class="card center sticky-save"><button class="btn big primary" data-act="ed-save">✓ Done</button></div>`);
     updateEditorSummary();
   }
   function editWord(id) { return edit && edit.words.find((w) => w.id === id); }
   function onEditInput(e) {
+    if (e.target && e.target.id === 'wordlist') { me().listDraft = e.target.value; clearTimeout(persistTimer); persistTimer = setTimeout(save, 400); return; }
     const t = e.target, w = t.dataset && editWord(t.dataset.w); if (!w) return;
     const f = t.dataset.f, mi = +t.dataset.m, si = +t.dataset.s;
     if (f === 'word') w.word = t.value.trim();
@@ -312,6 +359,7 @@
     else if (f === 'sent') w.meanings[mi].sentences[si] = t.value;
     else if (f === 'alt') { if (e.type !== 'change' || t.value === '') return; const a = w.alts[+t.value]; w.meanings.push({ pos: a.pos, def: a.def, sentences: a.ex ? [a.ex] : [''] }); refreshCard(w); return; }
     if (e.type === 'change') refreshFlags(w);
+    persistSoon();
   }
   // Update only the warning flags, so typing focus isn't lost when moving between boxes.
   function refreshFlags(w) {
@@ -323,21 +371,15 @@
     updateEditorSummary();
   }
   function refreshCard(w) {
+    persistEdit();
     const card = document.getElementById('card-' + w.id); if (!card) return;
     card.outerHTML = editCard(w); updateEditorSummary();
   }
   function saveEdit() {
-    const m = me(), seen = new Set();
-    const words = edit.words.filter((w) => w.word && !seen.has(key(w.word)) && seen.add(key(w.word))).map((w) => ({
-      id: w.id, word: w.word, challenge: !!w.challenge, phonetic: w.phonetic || '', audio: w.audio || '', status: w.status === 'pending' ? 'offline' : w.status,
-      meanings: w.meanings.map((x) => ({ pos: (x.pos || '').trim(), def: (x.def || '').trim(), sentences: x.sentences.map((s) => s.trim()).filter(Boolean) })).filter((x) => x.def || x.sentences.length),
-      alts: w.alts || [],
-    }));
-    const keep = new Set(words.map((w) => key(w.word)));
-    Object.keys(m.prog).forEach((k) => { if (!keep.has(k)) delete m.prog[k]; });
-    m.words = words; m.weekStart = m.weekStart || Date.now();
-    edit = null; save();
-    toast(`💾 Saved ${words.length} words!`);
+    clearTimeout(persistTimer); persistEdit();
+    const n = me().words.length;
+    edit = null;
+    toast(`💾 ${n} words saved in ${esc((player(cur) || {}).name || 'your')}'s profile!`);
     renderHome();
   }
 
@@ -388,7 +430,12 @@
         <div class="label">Spelling Bee timer</div>
         <div class="grade-pick">${[['normal', '⏱️ 30 seconds'], ['relaxed', '🐢 60 seconds'], ['off', '🚫 Off']].map(([k, l]) => `<button class="chip ${s.timer === k ? 'sel' : ''}" data-act="set-timer" data-arg="${k}">${l}</button>`).join('')}</div>
         <div class="label">Players' word lists</div>
-        ${players().map((p) => { const m = ww.players[p.id]; return `<div class="prow"><span>${p.avatar} <b>${esc(p.name)}</b> · ${m && m.words ? m.words.length : 0} words</span>${m && m.words && m.words.length ? `<button class="btn sm danger" data-act="clear-week" data-arg="${p.id}">🗓️ Start a new week</button>` : ''}</div>`; }).join('') || '<p>No players yet.</p>'}
+        ${players().map((p) => { const n = (spellingOf(p).words || []).length; return `<div class="prow"><span>${p.avatar} <b>${esc(p.name)}</b> · ${n} words saved in her profile</span>${n ? `<button class="btn sm danger" data-act="clear-week" data-arg="${p.id}">🗓️ Start a new week</button>` : ''}</div>`; }).join('') || '<p>No players yet.</p>'}
+        <div class="label">💾 Backups</div>
+        <p class="note">Spelling words are saved inside each player's profile, together with her gems, and stay until you tap “Start a new week”. A backup copies all players, gems and words, so you can restore them if the browser ever clears its data, or move them to another device. (The same backup works in Math Quest.)</p>
+        <div class="menu-row left"><button class="btn primary" data-act="backup-download">⬇️ Download backup file</button><button class="btn" data-act="backup-restore-file">⬆️ Restore from file</button>
+          <button class="btn" data-act="backup-copy">📋 Copy save code</button><button class="btn" data-act="backup-paste">📥 Paste save code</button></div>
+        <input type="file" id="restore-file" accept=".json,application/json,text/plain" hidden>
         <div class="label">How it works</div>
         <ul class="rules">
           <li>Each player has her own list for the current week. Either a grown-up or the child can add or edit words (✏️ Edit words).</li>
@@ -402,26 +449,65 @@
     const vp = document.getElementById('voice-pick'); vp.addEventListener('change', () => { ww.settings.voice = vp.value; save(); });
   }
 
+  // ---------------- BACKUPS (same format as Math Quest, so either app can restore them) ----------------
+  function exportData() { save(); return { app: 'math-quest', version: 1, saved: new Date().toISOString(), store: mathStore() }; }
+  const encodeCode = () => 'MQ1:' + btoa(unescape(encodeURIComponent(JSON.stringify(exportData()))));
+  function downloadBackup() {
+    try {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(exportData())], { type: 'application/json' }));
+      a.download = `word-wizards-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+      toast('⬇️ <b>Backup downloaded!</b><br>Keep it in Files, or email it to yourself.');
+    } catch (e) { toast('Download didn\'t work here. Try “Copy save code”.'); }
+  }
+  function copyCode() {
+    const code = encodeCode(), done = () => toast('📋 <b>Save code copied!</b><br>Paste it into Notes or a message to keep it safe.');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(done, () => { prompt('Copy this save code:', code); done(); });
+    else { prompt('Copy this save code:', code); done(); }
+  }
+  function restoreFrom(text) {
+    let data;
+    try {
+      const t = text.trim();
+      data = JSON.parse(t.startsWith('MQ1:') ? decodeURIComponent(escape(atob(t.slice(4)))) : t);
+      if (data && data.store) data = data.store;
+      if (!data || !Array.isArray(data.profiles)) throw new Error('no players');
+    } catch (e) { alert('Sorry, that is not a Word Wizards / Math Quest backup (or it got cut off). Nothing was changed.'); return; }
+    const names = data.profiles.map((p) => `${p.name} (${((p.spelling || {}).words || []).length} words)`).join(', ');
+    if (!confirm(`Restore this backup? ${names}.\n\nPlayers in the backup replace the same players on this device. Other players are kept.`)) return;
+    const s = mathStore();
+    data.profiles.forEach((bp) => { const i = s.profiles.findIndex((p) => p.id === bp.id); if (i >= 0) s.profiles[i] = bp; else s.profiles.push(bp); });
+    s.h2h = Object.assign({}, s.h2h, data.h2h || {});
+    const ok = writeJSON(MQ_KEY, s);
+    reloadPlayer(); cur = null;
+    toast(ok ? '✅ <b>Backup restored!</b>' : '⚠️ This browser is not saving. Turn off Private Browsing.');
+    renderPlayers();
+  }
+  document.addEventListener('change', (e) => {
+    if (e.target && e.target.id === 'restore-file' && e.target.files && e.target.files[0]) { const r = new FileReader(); r.onload = () => restoreFrom(String(r.result)); r.readAsText(e.target.files[0]); }
+  });
+
   // ---------------- routing ----------------
   function route(act, arg, el) {
     if (/^say/.test(act)) return sayRoute(act, arg);
     if (WW.games && WW.games.route(act, arg, el)) return;
     switch (act) {
-      case 'players': return renderPlayers();
+      case 'players': if (edit) { clearTimeout(persistTimer); persistEdit(); edit = null; } return renderPlayers();
       case 'new-player': draft = { name: '', avatar: '🦄', grade: 4 }; return renderNewPlayer();
       case 'draft-avatar': draft.avatar = arg; return renderNewPlayer();
       case 'draft-grade': draft.grade = +arg; return renderNewPlayer();
-      case 'create-player': { const n = draft.name.trim(); if (!n) return toast('Type a name first ✏️'); const p = createPlayer(n, draft.avatar, draft.grade); cur = p.id; return renderThemes(); }
-      case 'choose': cur = arg; return me().wi == null ? renderThemes() : renderHome();
+      case 'create-player': { const n = draft.name.trim(); if (!n) return toast('Type a name first ✏️'); const p = createPlayer(n, draft.avatar, draft.grade); cur = p.id; reloadPlayer(); return renderThemes(); }
+      case 'choose': cur = arg; reloadPlayer(); return me().wi == null ? renderThemes() : renderHome();
       case 'themes': return renderThemes();
       case 'set-theme': me().wi = +arg; save(); sfx.win(); return renderHome();
-      case 'home': return renderHome();
-      case 'edit': return renderEditList();
+      case 'home': if (edit) { clearTimeout(persistTimer); persistEdit(); edit = null; } return renderHome();
+      case 'edit': if (edit) { clearTimeout(persistTimer); persistEdit(); edit = null; } return renderEditList();
       case 'lookup': return lookupAll();
-      case 'new-week': if (confirm('Start a new week? This week\'s words and progress will be cleared.')) { me().words = []; me().prog = {}; me().weekStart = Date.now(); save(); renderEditList(); } return;
+      case 'new-week': if (confirm('Start a new week? This week\'s words and progress will be cleared.')) { me().words = []; me().prog = {}; delete me().listDraft; me().weekStart = Date.now(); save(); renderEditList(); } return;
       case 'ed-challenge': { const w = editWord(arg); w.challenge = !w.challenge; return refreshCard(w); }
       case 'ed-say': { const w = editWord(arg); return WW.speech.sayWord(w); }
-      case 'ed-remove': { edit.words = edit.words.filter((w) => w.id !== arg); const c = document.getElementById('card-' + arg); if (c) c.remove(); return updateEditorSummary(); }
+      case 'ed-remove': { edit.words = edit.words.filter((w) => w.id !== arg); const c = document.getElementById('card-' + arg); if (c) c.remove(); persistEdit(); return updateEditorSummary(); }
       case 'ed-retry': { const w = editWord(arg); w.status = 'pending'; refreshCard(w); WW.dict.lookup(w.word).then((r) => { Object.assign(w, { status: r.status, phonetic: r.phonetic, audio: r.audio, meanings: r.meanings.length ? r.meanings : w.meanings, alts: r.alts }); refreshCard(w); }); return; }
       case 'ed-add-meaning': { const w = editWord(arg); w.meanings.push({ pos: '', def: '', sentences: [''] }); return refreshCard(w); }
       case 'ed-del-meaning': { const [id, mi] = arg.split(','); const w = editWord(id); w.meanings.splice(+mi, 1); return refreshCard(w); }
@@ -438,7 +524,11 @@
       case 'set-sound': ww.settings.sound = arg === 'on'; save(); return renderSettings();
       case 'set-timer': ww.settings.timer = arg; save(); return renderSettings();
       case 'test-voice': WW.speech.stop(); return WW.speech.speak('Hello, Word Wizard! Your next word is: rainbow.', 0.9);
-      case 'clear-week': { const p = player(arg); if (p && confirm(`Clear ${p.name}'s words and progress for a new week?`)) { const m = ww.players[arg]; m.words = []; m.prog = {}; m.weekStart = Date.now(); save(); } return renderSettings(); }
+      case 'clear-week': { const p = player(arg); if (p && confirm(`Clear ${p.name}'s words and progress for a new week?`)) { updateProfile(arg, (x) => { x.spelling = Object.assign(x.spelling || {}, { words: [], prog: {}, weekStart: Date.now() }); delete x.spelling.listDraft; }); if (arg === cur) reloadPlayer(); } return renderSettings(); }
+      case 'backup-download': return downloadBackup();
+      case 'backup-restore-file': { const f = document.getElementById('restore-file'); if (f) { f.value = ''; f.click(); } return; }
+      case 'backup-copy': return copyCode();
+      case 'backup-paste': { const code = prompt('Paste the save code here:'); if (code) restoreFrom(code.trim()); return; }
       case 'game': return WW.games.start(arg);
     }
   }
@@ -451,7 +541,11 @@
   document.addEventListener('change', onEditInput);
   document.addEventListener('keydown', (e) => { if (screen === 'new-player' && e.key === 'Enter') route('create-player'); });
   // keep gems current if Math Quest changes them in another tab
-  window.addEventListener('storage', (e) => { if (e.key === MQ_KEY && screen === 'home') renderHome(); });
+  window.addEventListener('storage', (e) => {
+    if (e.key !== MQ_KEY || screen === 'game' || screen === 'editor' || screen === 'edit-list') return;
+    reloadPlayer();
+    if (screen === 'home') renderHome(); else if (screen === 'players') renderPlayers();
+  });
   // voices load asynchronously on some devices
   try { if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => { if (screen === 'settings') renderSettings(); }; } catch (e) { /* none */ }
 
@@ -459,10 +553,11 @@
   Object.assign(WW, {
     esc, pick, shuffle, norm, show, topbar, toast, confetti, sfx, me, prog, stars, ready, recordRecall, gameDone, addGems, award, practiceOrder,
     promptBar, hideWord, wordById, world, theme, renderHome, setCleanup: (fn) => { cleanup = fn; }, setScreen: (s) => { screen = s; }, getScreen: () => screen, save,
-    _debug: { ww: () => ww, cur: () => cur, edit: () => edit },
+    _debug: { ww: () => ww, cur: () => cur, edit: () => edit, restoreFrom, exportCode: encodeCode },
   });
 
-  // start
+  // start: ask the browser to keep this site's saved data even when storage is low
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) { /* not supported */ }
   if (!writeJSON('ww_test', 1)) { saveFailed = true; banner(); } else localStorage.removeItem('ww_test');
   setTimeout(renderPlayers, 0);
 })();
