@@ -250,7 +250,7 @@
         <button class="card feature race" data-act="race-setup"><span class="fe">🏁</span><span><b>Race Mode</b>Take turns against the stopwatch. Fastest wins!</span></button>
         <button class="card feature daily" data-act="daily-board"><span class="fe">📅</span><span><b>Today's Scores</b>See who's winning the Daily Challenge</span></button>
       </div>
-      <div class="center"><button class="btn ghost" data-act="settings">⚙️ For Grown-ups</button></div>`);
+      <div class="center menu-row"><button class="btn ghost" data-act="settings">⚙️ For Grown-ups</button><a class="btn ghost" href="../word-wizards/index.html" style="text-decoration:none">🧙‍♀️ Word Wizards (spelling)</a></div>`);
   }
 
   let draft = { name: '', avatar: '🦄', grade: 4 };
@@ -1270,6 +1270,25 @@
     else if (e.key === 'Backspace') { e.preventDefault(); pressKey('⌫'); }
     else if (e.key === 'Enter') { e.preventDefault(); pressKey('✓'); }
     else if (e.key.toLowerCase() === 'h') { useHint(); }
+  });
+
+  // Word Wizards (the spelling app) shares players and gems through this same save. If it changes the
+  // save in another tab, reload it here so this tab never writes old gem totals back over it.
+  window.addEventListener('storage', (e) => {
+    if (e.key !== SAVE_KEY || !e.newValue) return;
+    try {
+      const fresh = JSON.parse(e.newValue);
+      if (!fresh || !Array.isArray(fresh.profiles)) return;
+      const keepResume = store.resume;
+      Object.keys(store).forEach((k) => delete store[k]);
+      Object.assign(store, fresh);
+      store.settings = Object.assign({ sound: true, timer: 'normal' }, store.settings);
+      store.h2h = store.h2h || {};
+      store.profiles.forEach(normalize);
+      if (keepResume && !store.resume) store.resume = keepResume;
+      const redraw = { map: () => (P() ? renderMap() : renderProfiles()), profiles: renderProfiles, shop: renderShop, badges: renderBadges, treasures: renderTreasures, settings: renderSettings }[screen];
+      if (redraw && (screen === 'profiles' || screen === 'settings' || P())) redraw();
+    } catch (err) { /* ignore a bad save from elsewhere */ }
   });
 
   // Save the moment the app is hidden, switched away from, or closed.

@@ -5,3 +5,4 @@ A collection of browser-based learning games. Each game lives in its own folder 
 | Game | Subject | Grades |
 |---|---|---|
 | [🌈 Math Quest: Rainbow Realms](math-quest/) | Math | 4–8 |
+| [🧙‍♀️ Word Wizards](word-wizards/) | Spelling (weekly lists) | 2–8 |
