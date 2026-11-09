@@ -39,9 +39,12 @@ Typing games use the app's **own keyboard**, so the iPad's autocorrect and word 
 
 ## Saving
 
-- Spelling words and progress save automatically in this browser (`wordwizards.v1`).
-- Players and gems live in Math Quest's save (`mathquest.v1`). If both apps are open in different tabs, they keep each other up to date.
-- Math Quest's backup covers players and gems, but not spelling lists.
+- **Each player's words are saved in her player profile**, together with her gems. They stay until someone taps **🗓️ Start a new week** (or deletes the player).
+- The editor **saves as you type**. Leaving it any way (Back, closing the app) keeps the changes, and a half-typed list is kept too.
+- Progress (test-ready stars, badges) is saved after every answer.
+- Profiles are stored in this browser (`mathquest.v1`, shared with Math Quest). If both apps are open in different tabs, they keep each other up to date. Word Wizards' own save (`wordwizards.v1`) only holds voice, speed, sound and timer settings.
+- **Backups:** ⚙️ For Grown-ups → 💾 Backups can download a backup file or copy a save code with all players, gems and words. It restores in Word Wizards or Math Quest (Math Quest's backups include the words too). Use one if the browser ever clears its data, or to move to another device.
+- Older saves, from before words were stored in profiles, move over automatically.
 
 ## Files
 
