@@ -319,7 +319,24 @@
       WW.sfx.good();
       document.getElementById('pz-panel').innerHTML = `<div class="feedback good"><div class="fb-title">🧩 Solved!</div>${bigWord(w)}<button class="btn big primary" id="next-btn" data-act="pz-next">Next ➜</button></div>`;
       document.querySelectorAll('.tile, .slot.filled').forEach((b) => { b.disabled = true; });
-    } else { p.tries++; G.missed.add(w.id); WW.sfx.bad(); shake('slots'); WW.toast(p.tries >= 2 ? 'Try the 💡 Hint!' : 'Not quite. Tap a letter to take it back.'); }
+    } else {
+      p.tries++; G.missed.add(w.id); WW.sfx.bad(); shake('slots');
+      WW.toast(p.tries >= 2 ? 'Not quite! Try the 💡 Hint.' : 'Not quite! The letters in the wrong spots went back. Try again!');
+      // Give the wrong letters back automatically so she can try again right away.
+      const game = G;
+      autoId = setTimeout(() => {
+        if (G !== game || !G.p) return;
+        const target = w.word.toLowerCase();
+        if (p.kind === 'scramble') {
+          const letters = target.replace(/ /g, ''); let k = 0;
+          while (k < p.built.length && p.built[k].c === letters[k]) k++; // keep the correct start
+          p.built.splice(k).forEach((t) => { t.used = false; });
+        } else {
+          p.blanks.forEach((i) => { if (p.fill[i] && p.fill[i].c !== target[i]) { p.fill[i].used = false; delete p.fill[i]; } });
+        }
+        renderPuzzle();
+      }, 900);
+    }
   }
   function puzzleHint() {
     const w = word(), p = G.p; p.hinted = true;
@@ -497,13 +514,19 @@
     const c = G.cards[i]; if (c.up || c.done || G.open.length >= 2) return;
     c.up = true; G.open.push(c);
     if (c.kind === 'word') WW.speech.sayWord(WW.wordById(c.id));
+    let miss = null;
     if (G.open.length === 2) {
       G.moves++;
       const [a, b] = G.open;
       if (a.id === b.id) { a.done = b.done = true; G.open = []; G.correct++; earn(1); WW.sfx.good(); }
-      else { WW.sfx.bad(); autoId = setTimeout(() => { a.up = b.up = false; G.open = []; if (G && G.id === 'memory') renderMemory(); }, 1300); }
+      else { WW.sfx.bad(); miss = [a, b]; }
     }
     renderMemory();
+    // Start the flip-back timer AFTER drawing: drawing a screen cancels any timers from the one before.
+    if (miss) {
+      const [a, b] = miss, game = G;
+      autoId = setTimeout(() => { if (G !== game) return; a.up = b.up = false; G.open = []; renderMemory(); }, 1300);
+    }
     if (G.cards.every((x) => x.done)) {
       if (G.rest.length) autoId = setTimeout(() => { WW.toast('🎉 Round complete! Next round…'); dealMemory(); }, 1000);
       else autoId = setTimeout(() => finish([`All ${G.correct} pairs matched in ${G.moves} moves!`], 3), 1000);
