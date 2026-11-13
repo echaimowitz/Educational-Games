@@ -6,3 +6,4 @@ A collection of browser-based learning games. Each game lives in its own folder 
 |---|---|---|
 | [🌈 Math Quest: Rainbow Realms](math-quest/) | Math | 4–8 |
 | [🧙‍♀️ Word Wizards](word-wizards/) | Spelling (weekly lists) | 2–8 |
+| [🦄 Unicorn Letter Land](unicorn-letters/) | Letters and letter sounds | Preschool |
